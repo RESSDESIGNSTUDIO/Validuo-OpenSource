@@ -1,0 +1,5 @@
+version = 2
+
+# Next.js
+[preview]
+command = ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]

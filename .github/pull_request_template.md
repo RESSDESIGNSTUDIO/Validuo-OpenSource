@@ -22,6 +22,7 @@
 - [ ] Zmiana realizuje określone wymaganie i mieści się w zakresie zadania.
 - [ ] Kierunek zależności `app -> db -> core`, `app -> core`, `app -> ui` jest zachowany.
 - [ ] Nowy lub zmieniony kod w `packages/*/src` ma 100% pokrycia testami jednostkowymi.
+- [ ] Każdy commit ma podpis DCO (`git commit -s`), a nowe zależności mają licencję zgodną z AGPL-3.0.
 - [ ] Chroniona operacja sprawdza sesję i uprawnienia; tenant, aktor i prawa nie pochodzą z payloadu.
 - [ ] Schemat wejścia odrzuca niedozwolone pola; encje i surowe błędy nie trafiają do klienta.
 - [ ] Operacje wieloetapowe mają poprawną granicę transakcji i ochronę współbieżności.

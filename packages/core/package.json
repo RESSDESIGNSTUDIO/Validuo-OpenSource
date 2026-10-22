@@ -1,0 +1,17 @@
+{
+  "name": "@validuo/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./di": "./src/di/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "awilix": "^13.0.5"
+  }
+}

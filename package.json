@@ -1,24 +1,31 @@
 {
-  "name": "workspace-app",
+  "name": "validuo",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
   },
-  "dependencies": {
-    "next": "16.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+  "packageManager": "npm@11.19.0",
+  "scripts": {
+    "dev": "npm run dev -w @validuo/app --",
+    "build": "npm run build -w @validuo/app",
+    "start": "npm run start -w @validuo/app --",
+    "lint": "eslint",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db": "npm run mikro-orm -w @validuo/db --",
+    "db:migration:create": "npm run mikro-orm -w @validuo/db -- migration:create",
+    "db:migrate": "npm run mikro-orm -w @validuo/db -- migration:up",
+    "db:migration:down": "npm run mikro-orm -w @validuo/db -- migration:down",
+    "db:migration:list": "npm run mikro-orm -w @validuo/db -- migration:list"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "@types/node": "^24",
+    "eslint": "^10",
+    "eslint-config-next": "16.4.2",
     "typescript": "^5"
   }
 }

@@ -1,0 +1,6 @@
+/* Tailwind, motyw i tokeny shadcn pochodzą z @validuo/ui (jedno źródło prawdy).
+   Klasy z @validuo/ui są skanowane przez @source w pliku pakietu, a tutaj
+   dodajemy źródła aplikacji. */
+@import "@validuo/ui/globals.css";
+
+@source "../";

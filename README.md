@@ -1,6 +1,6 @@
 # Validuo
 
-Validuo to aplikacja webowa SaaS do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami — z monitorowaniem terminów ważności, zaproszeniami, przypomnieniami i historią zmian. Zbudowana na Next.js, React i TypeScript, z PostgreSQL obsługiwanym przez MikroORM, w monorepo npm workspaces.
+Validuo to aplikacja webowa open source do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami — z monitorowaniem terminów ważności, zaproszeniami, przypomnieniami i historią zmian. Zbudowana na Next.js, React i TypeScript, z PostgreSQL obsługiwanym przez MikroORM, w monorepo npm workspaces.
 
 Obowiązujące standardy inżynieryjne (architektura, nazewnictwo, reguły domenowe, bezpieczeństwo, testy, checklista review): [`.ai/specs/engineering-standards.md`](.ai/specs/engineering-standards.md).
 
@@ -197,3 +197,9 @@ Dopisz `GroupSchema` do listy w `packages/db/src/entities/index.ts`, uruchom `np
 ## Praca z agentami AI
 
 Zasady dla agentów kodujących są w `AGENTS.md`: główny plik opisuje architekturę i proces, a pliki w każdym pakiecie dodają szczegóły. Katalog `.ai/` zawiera specyfikacje (`specs/`), logi przebiegów (`runs/`) i wnioski (`lessons.md`).
+
+## Licencja i współtworzenie
+
+Validuo jest oprogramowaniem open source na licencji [GNU Affero General Public License v3.0](LICENSE) (`AGPL-3.0-only`). Możesz używać, badać, zmieniać i rozpowszechniać kod, także w celach komercyjnych, pod warunkiem że zachowasz informację o autorach i licencji, a zmodyfikowaną wersję — również udostępnianą użytkownikom przez sieć jako usługa — opublikujesz na tej samej licencji wraz z kodem źródłowym.
+
+Zmiany są mile widziane: zasady, DCO (podpis commitów `git commit -s`) i proces PR opisuje [`CONTRIBUTING.md`](CONTRIBUTING.md).

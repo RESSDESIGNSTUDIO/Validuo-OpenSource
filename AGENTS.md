@@ -10,7 +10,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Validuo — architektura i założenia
 
-Validuo to aplikacja webowa SaaS (pracownicy, grupy, działy, dokumenty, szkolenia, uprawnienia, terminy i przypomnienia) w monorepo npm workspaces. Poniższe założenia są **obowiązujące**. Zmiana któregokolwiek z nich (inna biblioteka, inny podział pakietów, inny kierunek zależności) wymaga najpierw specyfikacji w `.ai/specs/` i akceptacji człowieka.
+Validuo to aplikacja webowa open source (pracownicy, grupy, działy, dokumenty, szkolenia, uprawnienia, terminy i przypomnienia) w monorepo npm workspaces. Poniższe założenia są **obowiązujące**. Zmiana któregokolwiek z nich (inna biblioteka, inny podział pakietów, inny kierunek zależności) wymaga najpierw specyfikacji w `.ai/specs/` i akceptacji człowieka.
+
+**Licencja: GNU AGPL-3.0-only** (`LICENSE`, pole `license` w każdym `package.json`). Projekt jest open source: nie dodawaj kodu ani zależności o licencji niezgodnej z AGPL-3.0 (dozwolone m.in. MIT, ISC, BSD, Apache-2.0, MPL-2.0, LGPL; zakazane: licencje „tylko niekomercyjne”, własnościowe, GPL-2.0-only). Każdy commit ma podpis DCO (`git commit -s`, linia `Signed-off-by`) — patrz `CONTRIBUTING.md`. Nie wklejaj do repozytorium sekretów, danych klientów ani kodu bez praw do dystrybucji.
 
 **Pełny standard inżynieryjny: [`.ai/specs/engineering-standards.md`](.ai/specs/engineering-standards.md)** — nazewnictwo, reguły domenowe (role, plany, limity, terminy, zaproszenia, audyt), API, transakcje, bezpieczeństwo, testy i checklista code review. Stosuj go przy każdej implementacji i każdym review; ten plik jest jego skrótem operacyjnym dla obecnego stanu repo.
 

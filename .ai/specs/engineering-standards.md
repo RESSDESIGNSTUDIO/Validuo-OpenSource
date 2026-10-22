@@ -3,7 +3,7 @@
 Data: 2026-10-22
 Status: obowiązujące standardy implementacji
 
-Validuo to webowa aplikacja SaaS do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami. System monitoruje terminy ważności, obsługuje zaproszenia, przypomnienia i historię zmian oraz egzekwuje dostęp do danych i limity planów kont.
+Validuo to webowa aplikacja open source (licencja AGPL-3.0-only) do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami. System monitoruje terminy ważności, obsługuje zaproszenia, przypomnienia i historię zmian oraz egzekwuje dostęp do danych i limity planów kont.
 
 Dokument określa stos technologiczny, architekturę, konwencje kodu i kryteria akceptacji zmian. Agent AI stosuje te reguły przy implementacji i code review. Ścieżki w strukturze pakietów wskazują miejsce dla danej odpowiedzialności; foldery i abstrakcje powstają dopiero wtedy, gdy wymaga ich realizowana funkcja.
 

@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=24 <25",
+    "npm": ">=11"
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
@@ -15,17 +16,27 @@
     "build": "npm run build -w @validuo/app",
     "start": "npm run start -w @validuo/app --",
     "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run --project unit --coverage",
+    "test:unit": "vitest run --project unit --coverage",
+    "test:integration": "vitest run --project integration",
     "db": "npm run mikro-orm -w @validuo/db --",
     "db:migration:create": "npm run mikro-orm -w @validuo/db -- migration:create",
     "db:migrate": "npm run mikro-orm -w @validuo/db -- migration:up",
     "db:migration:down": "npm run mikro-orm -w @validuo/db -- migration:down",
-    "db:migration:list": "npm run mikro-orm -w @validuo/db -- migration:list"
+    "db:migration:list": "npm run mikro-orm -w @validuo/db -- migration:list",
+    "test:e2e": "vitest run --project e2e",
+    "app:ephemeral": "npm run ephemeral -w @validuo/app"
   },
   "devDependencies": {
     "@types/node": "^24",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "^10",
     "eslint-config-next": "16.4.2",
-    "typescript": "^5"
+    "prettier": "^3.9.10",
+    "typescript": "^5",
+    "vitest": "5.0.5"
   }
 }

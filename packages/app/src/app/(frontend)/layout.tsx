@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-// Strony publiczne: wyłącznie klasy Tailwind, bez komponentów shadcn z @validuo/ui.
+// Public pages: Tailwind classes only, no shadcn components from @validuo/ui.
 export default function FrontendLayout({
   children,
 }: Readonly<{

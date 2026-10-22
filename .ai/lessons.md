@@ -33,3 +33,36 @@ Po aktualizacji Next (16.3.4 → 16.4.2) treść bloku w `AGENTS.md` przestała 
 
 ### 2026-10-22 — `pkill -f` potrafi zabić własną powłokę
 `pkill -f "next start --port 3124"` dopasował też powłokę, która go uruchomiła (wzorzec był w jej linii poleceń). Zamykaj procesy po PID, sprawdziwszy wcześniej ich `cwd`/`environ`, zwłaszcza że w sandboxie działa też podgląd (`workspace-preview`), którego nie wolno ubić.
+
+### 2026-10-22 — Wspólny loader `@next/env` przez `createRequire`
+Rozwiązanie problemu z wpisu o imporcie CJS: `@validuo/core/config/load-env` ładuje `@next/env` przez `createRequire(import.meta.url)` i nie ma importów względnych. Ten sam moduł działa w `next.config.ts` (kompilowany do CJS), w `tsx` (CLI MikroORM, skrypty) i w natywnym Node 24. Nie wracaj do dwóch osobnych wywołań `loadEnvConfig` ani do zgadywania stylu importu.
+
+### 2026-10-22 — `instrumentation.ts`: `register()` działa też podczas `next build`
+Next wywołuje `register()` przy prerenderingu w buildzie. Fail-fast konfiguracji musi pomijać `NEXT_PHASE === "phase-production-build"` i runtime inny niż `nodejs`, a importować tylko moduły bez `server-only` (`@validuo/core/config`). Wyjątek w `register()` nie zatrzymuje `next start`: serwer loguje przyczynę i odpowiada 500 na każde żądanie — to zamierzone zachowanie „fail closed”.
+
+### 2026-10-22 — `next start` zostawia osierocony `next-server`
+Zabicie procesu-rodzica (`npm exec`, `setsid`) nie zamyka potomnego `next-server`, który dalej trzyma port. Kolejny start kończy się `EADDRINUSE`, a `curl` po cichu odpytuje *stary* serwer (fałszywie pozytywny wynik testu). Uruchamiaj testowe serwery z markerem (`VALIDUO_PROBE=1 next start …`) i zamykaj procesy znalezione po tym markerze w `/proc/<pid>/environ`; nigdy nie ruszaj podglądu `next dev` na porcie 3000.
+
+### 2026-10-22 — npm 11.19 blokuje skrypty instalacyjne
+`npm install` ostrzega o pakietach z `postinstall` nieobjętych `allowScripts` (`esbuild`, `unrs-resolver`) i ich nie uruchamia. Obecne narzędzia działają bez tych skryptów; przy dodawaniu pakietu, który pobiera binaria w `postinstall`, sprawdź, czy faktycznie działa, i świadomie użyj `npm install-scripts approve <pkg>`.
+
+### 2026-10-22 — Awilix 13 nie sprawdza typów rejestracji
+`container.register()` przyjmuje dowolne nazwy i resolvery, więc ręczny typ cradle (lub declaration merging) niczego nie gwarantuje. Rejestracje składamy jako obiekt typu `Registrations<AppCradle>` (`@validuo/core/di`) — brak klucza lub zły typ resolvera to błąd kompilacji.
+
+### 2026-10-22 — Vitest: błąd w `globalSetup` bez czytelnego komunikatu
+Gdy `globalSetup` rzuca wyjątek, Vitest 5 wywraca się przy drukowaniu stosu (`TypeError: code.charCodeAt is not a function`) i gubi komunikat. Setup projektu `integration` sam wypisuje przyczynę (`console.error`) przed ponownym rzuceniem błędu.
+
+### 2026-10-22 — Stan repo sprawdzaj na bieżąco, nie ze snapshotu z początku sesji
+Plan zakładał niezacommitowane drzewo (snapshot `gitStatus`), a w trakcie sesji powstał commit `b7c7d73`. Wyłapał to dopiero niezależny przegląd planu. Przed decyzjami zależnymi od stanu repo (np. jednorazowe formatowanie całości) uruchom `git status`/`git log`.
+
+### 2026-10-22 — Specyfikacja sprzeczna z AGENTS.md: najpierw zapytaj
+Standard (`engineering-standards.md`) wskazywał migracje Supabase, więc zamieniłem migrator MikroORM na Supabase CLI bez pytania, choć `AGENTS.md` zapisywał MikroORM jako obowiązujące założenie. Użytkownik to odrzucił: **projekt nie używa Supabase** (ani Auth, ani Storage, ani CLI) — migracje i persystencja wyłącznie MikroORM + PostgreSQL. Zmiany cofnięto, a standard poprawiono. Następnym razem: gdy specyfikacja lub standard przeczy założeniu z `AGENTS.md` (biblioteka, narzędzie, właściciel schematu, dostawca), wskaż konflikt i zapytaj człowieka przed implementacją — sama obecność zapisu w specyfikacji nie jest akceptacją zmiany architektury.
+
+### 2026-10-22 — Testy jednostkowe stron i pokrycie 100% w Vitest 5
+Pliki wyłącznie z typami i barrel re-eksporty dają w v8 0/0 i liczą się jako 100% — nie wykluczaj ich. Async Server Components testuj jako `renderToStaticMarkup(await Page())`, mockując `next/server` (`connection`), `@/server/container` i `@validuo/db`; importy CSS w layoutach Vitest zamienia na puste moduły. `@next/env` ładowany przez `createRequire` nie da się podmienić `vi.mock` i cache'uje wynik w procesie — testuj go na prawdziwym katalogu tymczasowym. `coverage.enabled` nie ustawiaj w konfiguracji (próg 100% objąłby integrację i E2E) — tylko `--coverage` w `test:unit`.
+
+### 2026-10-22 — testcontainers i agent-browser w sandboxie
+Sandbox nie ma Dockera (testcontainers: „Could not find a working container runtime strategy”) ani bibliotek Chromium (agent-browser: „Chrome not found”/brak `libnss3`). Lokalnie integrację i E2E uruchamiaj z `TEST_DATABASE_URL` (strażnik `requireTestDatabaseUrl`); scenariusze przeglądarkowe weryfikuje dopiero CI. `agent-browser` 0.39 ma binarkę w paczce (bez `postinstall`), odpowiada `{"success":…,"data"|"error"}` przy `--json`; na Ubuntu 24.04 w CI Chrome potrzebuje `sysctl kernel.apparmor_restrict_unprivileged_userns=0` zamiast `--no-sandbox`.
+
+### 2026-10-22 — `next build` restartuje worker podglądu `next dev`
+Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` — to nie osierocony proces testowy. Zanim cokolwiek zabijesz, sprawdź PPID (podgląd: rodzic `next dev`) i `environ` (`NODE_ENV=development`, współdzielone `DATABASE_URL`).

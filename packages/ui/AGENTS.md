@@ -1,6 +1,6 @@
 # @validuo/ui — komponenty interfejsu
 
-Obowiązują zasady z głównego `AGENTS.md` (sekcja „UI”). Ten plik dodaje szczegóły pakietu.
+Obowiązują zasady z głównego `AGENTS.md` (sekcja „UI”) i rozdz. 4 `.ai/specs/engineering-standards.md`. Ten plik dodaje szczegóły pakietu.
 
 ## Struktura
 
@@ -9,11 +9,13 @@ Obowiązują zasady z głównego `AGENTS.md` (sekcja „UI”). Ten plik dodaje 
 - `src/hooks/` — hooki wielokrotnego użytku; import: `@validuo/ui/hooks/<nazwa>`.
 - `src/styles/globals.css` — jedyne wejście Tailwinda (`@import "tailwindcss"`), tokeny motywu shadcn (jasny i `.dark`), `@source` dla plików pakietu.
 - `components.json` — konfiguracja shadcn dla pakietu; `postcss.config.mjs` — PostCSS współdzielony z aplikacją.
+- Docelowo (z pierwszym zastosowaniem): `src/backend/{forms,tables,feedback}` — generyczne wzorce panelu (`DataTable`, formularze, stany ładowania/pustej listy/błędu/zapisu/braku dostępu). Dostają dane i callbacki; nie rozwiązują DI ani sesji.
 
 ## Zasady
 
-- Komponenty dodawaj CLI z katalogu głównego: `npx shadcn@latest add <komponent> -c packages/app`. Nie kopiuj ręcznie kodu z dokumentacji.
+- Komponenty dodawaj CLI z katalogu głównego (wersja przypięta w tym pakiecie): `npx shadcn add <komponent> -c packages/app`. Nie kopiuj ręcznie kodu z dokumentacji. `src/components/` i `src/styles/globals.css` są wyłączone z Prettiera (styl CLI); po dodaniu uruchom `npm run typecheck` — nowy kod może wymagać poprawek pod `exactOptionalPropertyTypes`. Uzasadnione poprawki dostępności są dozwolone.
 - Komponenty shadcn można dostosowywać, ale zmiana dotyczy całego panelu — zachowaj API (`variant`, `size`, `asChild`, `data-slot`).
-- Pakiet nie zależy od innych pakietów `@validuo/*` ani od `next` (wymusza ESLint) — komponenty mają działać w dowolnej aplikacji React.
+- Pakiet nie zależy od innych pakietów `@validuo/*`, `next`, ORM, `awilix` ani `server-only` (wymusza ESLint) — komponenty mają działać w dowolnej aplikacji React i nie znają sekretów.
+- Dostępność: obsługa klawiatury, etykiety pól, focus po zamknięciu dialogu, ikona bez tekstu ma nazwę dostępną, czytelny kontrast w obu motywach.
 - Nowe tokeny kolorów dodawaj w `globals.css` w obu motywach (`:root` i `.dark`) oraz w `@theme inline`.
 - Nowe zależności runtime komponentów instaluj w tym pakiecie (`npm install <pkg> -w @validuo/ui`).

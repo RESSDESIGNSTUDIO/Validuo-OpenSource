@@ -1,2 +1,2 @@
-export { createAppContainer, type AppContainer, type Cradle, type DiModule } from "./container";
+export { createAppContainer, type AppContainer, type Registrations } from "./container";
 export { aliasTo, asClass, asFunction, asValue, Lifetime } from "awilix";

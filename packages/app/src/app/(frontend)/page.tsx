@@ -6,9 +6,9 @@ export default function HomePage() {
         Fundament aplikacji jest gotowy.
       </h1>
       <p className="max-w-xl text-lg text-pretty text-muted-foreground">
-        Strony publiczne powstają w <code className="font-mono text-foreground">(frontend)</code> i są
-        stylowane Tailwindem. Panel zaplecza w <code className="font-mono text-foreground">(backend)</code>{" "}
-        korzysta z komponentów shadcn/ui.
+        Strony publiczne powstają w <code className="font-mono text-foreground">(frontend)</code> i są stylowane
+        Tailwindem. Panel zaplecza w <code className="font-mono text-foreground">(backend)</code> korzysta z komponentów
+        shadcn/ui.
       </p>
       <div className="flex flex-wrap gap-3">
         <a

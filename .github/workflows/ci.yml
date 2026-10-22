@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install --global npm@11.19.0
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
+  unit:
+    name: Unit tests (100% coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install --global npm@11.19.0
+      - run: npm ci
+      # Fails when statements, branches, functions or lines of packages/*/src drop below 100%.
+      - run: npm run test:unit
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install --global npm@11.19.0
+      - run: npm ci
+      # The build must not need a database or runtime secrets.
+      - run: npm run build
+
+  integration:
+    name: Integration tests (testcontainers + agent-browser)
+    runs-on: ubuntu-latest
+    env:
+      # Close idle agent-browser daemons quickly instead of after the default hour.
+      AGENT_BROWSER_IDLE_TIMEOUT_MS: "60000"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install --global npm@11.19.0
+      - run: npm ci
+      # Ubuntu 24.04 blocks unprivileged user namespaces, which Chrome's sandbox needs.
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: npx agent-browser install --with-deps
+        working-directory: packages/app
+      - run: npx agent-browser doctor
+        working-directory: packages/app
+        continue-on-error: true
+      - run: npm run build
+      # PostgreSQL 17 comes from testcontainers (Docker on the runner), migrated with MikroORM.
+      - run: npm run test:integration
+      - run: npm run test:e2e

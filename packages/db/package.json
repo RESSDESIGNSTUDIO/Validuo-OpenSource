@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./testing/index.ts",
+    "./testing/vitest": "./testing/vitest.ts"
   },
   "scripts": {
     "mikro-orm": "mikro-orm",
@@ -14,11 +16,12 @@
     "@mikro-orm/core": "^7.2.5",
     "@mikro-orm/migrations": "^7.2.5",
     "@mikro-orm/postgresql": "^7.2.5",
-    "@next/env": "16.4.2",
     "@validuo/core": "*"
   },
   "devDependencies": {
     "@mikro-orm/cli": "^7.2.5",
+    "@testcontainers/postgresql": "12.2.1",
+    "testcontainers": "12.2.1",
     "tsx": "^4.23.15"
   },
   "mikro-orm": {

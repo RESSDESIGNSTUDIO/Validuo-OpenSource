@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Panel",
 };
 
-// Panel zaplecza: interfejs składany z komponentów shadcn/ui z @validuo/ui.
+// Back-office panel: composed from shadcn/ui components from @validuo/ui.
 export default function BackendLayout({
   children,
 }: Readonly<{

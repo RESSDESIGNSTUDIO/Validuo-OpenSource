@@ -1,14 +1,11 @@
-import { resolve } from "node:path";
-
-// Import nazwany: Next kompiluje ten plik do CommonJS (domyślny import @next/env byłby undefined).
-import { loadEnvConfig } from "@next/env";
+import { loadRootEnv } from "@validuo/core/config/load-env";
 import type { NextConfig } from "next";
 
-// Pliki .env* trzymamy w katalogu głównym monorepo (wspólne dla app i CLI MikroORM).
-loadEnvConfig(resolve(import.meta.dirname, "../.."), process.env.NODE_ENV !== "production");
+// `.env*` files live in the monorepo root and are shared with the database tooling.
+loadRootEnv();
 
 const nextConfig: NextConfig = {
-  // Pakiety MikroORM v7 spoza domyślnej listy Next.js — ładowane przez Node, nie bundlowane.
+  // MikroORM v7 packages missing from Next.js' default list — loaded by Node, not bundled.
   serverExternalPackages: ["@mikro-orm/postgresql", "@mikro-orm/sql", "@mikro-orm/migrations", "kysely"],
 };
 

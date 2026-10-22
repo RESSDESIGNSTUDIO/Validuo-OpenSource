@@ -1,27 +1,17 @@
 import { defineConfig, type Options } from "@mikro-orm/postgresql";
-import { boolEnv, intEnv, requireEnv, type Env } from "@validuo/core";
+import type { DatabaseConfig } from "@validuo/core/config";
 
 import { entities } from "./entities";
 
-/**
- * Konfiguracja MikroORM używana w runtime aplikacji (bez Migratora).
- *
- * Zmienne środowiskowe:
- * - `DATABASE_URL` — wymagany adres PostgreSQL,
- * - `DB_POOL_MIN` / `DB_POOL_MAX` — rozmiar puli połączeń (domyślnie 0 / 10),
- * - `DB_DEBUG` — logowanie zapytań SQL.
- */
-export function createOrmConfig(env: Env = process.env): Options {
+/** Runtime MikroORM options built from the validated configuration (`parseServerEnv`). */
+export function createOrmConfig(database: DatabaseConfig): Options {
   return defineConfig({
-    clientUrl: requireEnv("DATABASE_URL", env),
+    clientUrl: database.url,
     entities,
-    pool: {
-      min: intEnv("DB_POOL_MIN", 0, env),
-      max: intEnv("DB_POOL_MAX", 10, env),
-    },
-    debug: boolEnv("DB_DEBUG", false, env),
+    pool: { min: database.poolMin, max: database.poolMax },
+    debug: database.debug,
     discovery: {
-      // Domena nie ma jeszcze encji; bez tego MikroORM rzuca błąd przy starcie.
+      // There are no domain entities yet; without this MikroORM refuses to start.
       warnWhenNoEntities: false,
     },
   });

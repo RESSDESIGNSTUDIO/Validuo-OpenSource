@@ -26,7 +26,7 @@ Dokument określa stos technologiczny, architekturę, konwencje kodu i kryteria 
 | Monorepo | npm workspaces: `app`, `core`, `db`, `ui` |
 | Walidacja | Zod 4, wspólne schematy wejścia i DTO |
 | Jakość | ESLint z regułami granic pakietów, TypeScript, jeden formatter |
-| Testy | Vitest dla reguł i usług, PostgreSQL dla integracji, Playwright dla scenariuszy przeglądarkowych |
+| Testy | Vitest (unit, 100% pokrycia kodu `src`), PostgreSQL przez testcontainers dla integracji, agent-browser dla scenariuszy przeglądarkowych na tymczasowej instancji aplikacji |
 
 Dokładne wersje zależności ustala lockfile po sprawdzeniu kompatybilności. Nie stosujemy `latest` w CI. Nowa biblioteka musi rozwiązywać konkretny problem, którego nie pokrywają obecne narzędzia.
 
@@ -238,9 +238,9 @@ Typy portów należą do `core`; typowanie konkretnych rejestracji powstaje w co
 - Jedna transakcja obejmuje zmianę danych, kontrolę konfliktu i wymagany wpis audytu/outboxa.
 - Limit pracowników, zmiana właściciela i kolejność działów wymagają ochrony współbieżności. Samo `SELECT`, a następnie `INSERT` w transakcji przy domyślnej izolacji nie rozwiązuje wyścigu.
 - Blokady pobieramy w stałej kolejności. Retry po deadlocku lub konflikcie serializacji jest ograniczony i dotyczy całej operacji, jeśli jest bezpieczna do powtórzenia.
-- SMTP i Storage nie należą do transakcji PostgreSQL. Dla skutków zewnętrznych stosujemy outbox lub jawny proces kompensacji z możliwością ponowienia.
-- Dla schematu obowiązuje jeden właściciel migracji. Pliki SQL znajdują się w `supabase/migrations`; nie uruchamiamy równolegle niezależnych migratorów Supabase i MikroORM na tych samych obiektach.
-- Nowy SQL musi zachowywać funkcje, polityki RLS, granty i triggery, których ORM nie odtwarza automatycznie. Wygenerowany diff zawsze podlega przeglądowi.
+- SMTP i magazyn plików nie należą do transakcji PostgreSQL. Dla skutków zewnętrznych stosujemy outbox lub jawny proces kompensacji z możliwością ponowienia.
+- Dla schematu obowiązuje jeden właściciel migracji: Migrator MikroORM. Migracje i snapshot schematu znajdują się w `packages/db/src/migrations`; nie stosujemy równolegle innego narzędzia migracji ani ręcznych zmian schematu na tych samych obiektach.
+- Wygenerowana migracja zawsze podlega przeglądowi. Elementy, których ORM nie generuje ani nie odtwarza automatycznie (funkcje, polityki RLS, granty, triggery, złożone constraints), dopisujemy w migracji jawnie i zachowujemy przy kolejnych zmianach.
 - Nie używamy `schema:update --run` na produkcji. Wdrożonych migracji nie edytujemy. Przed zmianą destrukcyjną wymagane są świadoma decyzja, backup i sprawdzona procedura odtworzenia.
 
 Źródła: [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html), [MikroORM migrations](https://mikro-orm.io/docs/migrations).
@@ -249,41 +249,41 @@ Typy portów należą do `core`; typowanie konkretnych rejestracji powstaje w co
 
 ### Sesja i autoryzacja
 
-Uwierzytelnianie realizuje Supabase Auth, a przechowywanie plików Supabase Storage. Integracje są dostępne przez adaptery implementujące porty aplikacji. Nie implementujemy własnego hashowania haseł ani wystawiania JWT.
+Mechanizm uwierzytelniania i magazyn plików wybieramy w osobnych specyfikacjach; integracje są dostępne przez adaptery implementujące porty aplikacji (np. `FileStoragePort`). Nie implementujemy od zera własnej kryptografii — hashowanie haseł, podpisywanie tokenów i sesji korzystają ze sprawdzonych bibliotek i algorytmów.
 
 - Każda chroniona Route Handler i Server Action weryfikuje tożsamość oraz uprawnienie do konkretnej operacji. Ukryty przycisk, layout lub redirect nie zapewnia autoryzacji.
-- Przy SSR korzystamy z oficjalnego wzorca Supabase dla klienta serwerowego, cookies i odświeżania sesji. Nie ufamy samej odczytanej zawartości sesji bez wymaganej weryfikacji tokenu.
-- Flagi cookies wynikają z mechanizmu sesji i sposobu odświeżania. Dla własnych cookies wyłącznie serwerowej sesji stosujemy `HttpOnly`, `Secure` w produkcji i właściwe `SameSite`. Nie narzucamy `HttpOnly` mechanizmowi SDK, który wymaga dostępu klienta, bez zmiany całego modelu sesji.
+- Sesja jest weryfikowana po stronie serwera przy każdym chronionym żądaniu (podpis/ważność tokenu lub rekord sesji w bazie). Nie ufamy samej odczytanej zawartości cookie bez weryfikacji.
+- Cookies sesji ustawiamy z `HttpOnly`, `Secure` w produkcji i właściwym `SameSite`; czas życia i odświeżanie sesji wynikają z przyjętego mechanizmu, a wylogowanie lub odebranie dostępu unieważnia sesję po stronie serwera.
 - Dla mutacji uwierzytelnianych cookies sprawdzamy origin/host i stosujemy ochronę CSRF odpowiednią do transportu. CORS nie zastępuje autoryzacji ani ochrony CSRF.
 - Rate limiting obejmuje logowanie, reset hasła, wysyłkę i przyjmowanie zaproszeń oraz funkcje administracyjne. Przy wielu replikach licznik w pamięci procesu nie jest wystarczający.
 - Chronione dane nie mogą trafić do współdzielonego publicznego cache. Każda decyzja o cache danych tenantów określa zakres, klucz i unieważnianie po zmianie członkostwa.
 
-Źródło: [Supabase SSR dla Next.js](https://supabase.com/docs/guides/auth/server-side/nextjs).
+Źródło: [Next.js authentication](https://nextjs.org/docs/app/guides/authentication).
 
 ### ORM a RLS
 
-Bezpośrednie połączenie PostgreSQL przez MikroORM **nie przejmuje automatycznie sesji JWT Supabase**. `auth.uid()` i kontekst roli nie pojawiają się przez samo użycie tego samego serwera bazy.
+Polityki RLS (jeśli je stosujemy) nie znają tożsamości użytkownika aplikacji: połączenie z puli MikroORM należy do jednej roli bazy, a kontekst aktora nie pojawia się w PostgreSQL automatycznie.
 
-Połączenie runtime wymaga konta o minimalnych prawach, bez `SUPERUSER`, `BYPASSRLS` i bez własności tabel biznesowych. Konto migracyjne jest oddzielne. Jeżeli polityki wymagają kontekstu użytkownika, zaufany adapter ustawia go lokalnie w transakcji na podstawie zweryfikowanej tożsamości, nigdy z surowego payloadu. Nie ustawiamy trwałego kontekstu sesji na połączeniu wracającym do puli.
+Połączenie runtime wymaga konta o minimalnych prawach, bez `SUPERUSER`, `BYPASSRLS` i bez własności tabel biznesowych. Konto migracyjne jest oddzielne. Jeżeli polityki wymagają kontekstu użytkownika, zaufany adapter ustawia go lokalnie w transakcji (`SET LOCAL` / `set_config(..., true)`) na podstawie zweryfikowanej tożsamości, nigdy z surowego payloadu. Nie ustawiamy trwałego kontekstu sesji na połączeniu wracającym do puli.
 
-Test integracyjny musi dowodzić, że właściwe polityki działają na realnej roli runtime, kontekst nie przecieka do kolejnego requestu, a zapytania poza ustanowionym kontekstem nie ujawniają danych. Sam test na właścicielu tabel nie potwierdza RLS. Każda ścieżka dostępu przez ORM i Data API/RPC wymaga osobnego testu egzekwowania uprawnień.
+Test integracyjny musi dowodzić, że właściwe polityki działają na realnej roli runtime, kontekst nie przecieka do kolejnego requestu, a zapytania poza ustanowionym kontekstem nie ujawniają danych. Sam test na właścicielu tabel nie potwierdza RLS. Każda ścieżka dostępu (ORM, funkcje SQL) wymaga osobnego testu egzekwowania uprawnień.
 
 `SECURITY DEFINER` wymaga minimalnych grantów, bezpiecznego `search_path`, kwalifikowanych nazw obiektów i kontroli wejścia. Nie udostępniamy funkcji administracyjnych wszystkim zalogowanym użytkownikom.
 
-Źródła: [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+Źródła: [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [PostgreSQL set_config](https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADMIN-SET).
 
 ### Pliki, sekrety i błędy
 
-- Publishable key może być publiczny. `service_role`, hasła DB/SMTP i sekrety integracji pozostają wyłącznie w środowisku serwerowym. `NEXT_PUBLIC_*` nie jest miejscem na sekret.
+- Hasła DB/SMTP, klucze podpisywania sesji i sekrety integracji pozostają wyłącznie w środowisku serwerowym. `NEXT_PUBLIC_*` nie jest miejscem na sekret.
 - Pliki pracowników i dokumenty wymagające autoryzacji przechowujemy prywatnie, z kontrolą praw pobrania i krótkotrwałymi signed URLs. Publiczny URL nie staje się prywatny przez ukrycie linku w UI.
 - Zdjęcia, logotypy i dokumenty mają jawną klasyfikację dostępu. Publiczne URL-e są dozwolone wyłącznie dla zasobów sklasyfikowanych jako publiczne.
 - Upload sprawdza rozmiar, rzeczywisty format, rozszerzenie, nazwę i zakres ścieżki. MIME przysłane przez klienta jest tylko wskazówką. SVG wymaga sanitizacji lub bezpiecznej rasteryzacji, nie samego dodania MIME do allowlist.
-- Usuwanie Storage jest idempotentne i uwzględnia współdzielone dane. Baza i Storage mają osobne procedury backupu i odtworzenia.
+- Usuwanie plików z magazynu jest idempotentne i uwzględnia współdzielone dane. Baza i magazyn plików mają osobne procedury backupu i odtworzenia.
 - Logi zawierają identyfikator żądania, operację, kod błędu i bezpieczny kontekst. Nie zawierają JWT, linków zaproszeń, signed URLs, haseł ani treści dokumentów.
-- Błędy Auth dla użytkownika są neutralne. Surowych komunikatów SQL, stack trace i odpowiedzi dostawców nie zwracamy do przeglądarki.
+- Błędy uwierzytelniania dla użytkownika są neutralne. Surowych komunikatów SQL, stack trace i odpowiedzi dostawców nie zwracamy do przeglądarki.
 - Nie stosujemy pustego `catch`. Kompensacja, która się nie powiodła, jest rejestrowana i możliwa do ponowienia.
 
-Źródła: [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [Supabase buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals).
+Źródła: [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html), [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html).
 
 ## 7. Coding standards
 
@@ -400,6 +400,7 @@ packages/
         employees/mikro-orm-employee.repository.ts
         groups/mikro-orm-group.repository.ts
       transactions/mikro-orm-unit-of-work.ts
+      migrations/                     # migracje MikroORM + .snapshot.json
 
   ui/
     src/
@@ -410,9 +411,6 @@ packages/
         feedback/
       lib/cn.ts
       styles/globals.css
-
-supabase/
-  migrations/                         # migracje schematu SQL
 ```
 
 Pozostałe domeny, np. `audit-history`, `notifications`, `accounts`, otrzymują foldery dopiero wraz z implementacją. Dla nowych domen stosujemy ten sam podział odpowiedzialności i konwencję nazw tras.
@@ -423,20 +421,20 @@ Pozostałe domeny, np. `audit-history`, `notifications`, `accounts`, otrzymują 
 
 | Warstwa | Co sprawdzamy |
 |---|---|
-| Unit | Stany terminów, walidacja pól, reguły planu, decyzje policy, przypadki użycia z portami testowymi |
+| Unit (100% pokrycia) | Stany terminów, walidacja pól, reguły planu, decyzje policy, przypadki użycia z portami testowymi, komponenty i strony |
 | Integracja DB | Constraints, RLS/granty na roli runtime, izolacja tenantów i grup, atomowość, wyścigi limitów i transferu |
 | API | Brak sesji, odmowa dostępu, walidacja, mass assignment, konflikty, ograniczona paginacja, neutralny błąd |
 | UI | Edycja, walidacja, loading/error/empty, wielokrotny submit, klawiatura i focus |
-| E2E | Logowanie, grupa i pracownik, zaproszenie, viewer bez edycji, utrata dostępu po odebraniu członkostwa |
+| E2E (agent-browser) | Logowanie, grupa i pracownik, zaproszenie, viewer bez edycji, utrata dostępu po odebraniu członkostwa |
 | Zadania i integracje | Powtórna dostawa, timeout dostawcy, retry i brak duplikacji audytu/outboxa |
 
-Testy integracyjne używają izolowanej bazy, nie produkcyjnego projektu Supabase ani produkcyjnego endpointu pocztowego. Test uprawnień wykonany wyłącznie kontem administracyjnym nie jest testem izolacji.
+Każda nowa funkcja ma 100% pokrycia testami jednostkowymi (instrukcje, gałęzie, funkcje, linie); próg wymusza CI. Testy integracyjne używają izolowanej bazy (kontener PostgreSQL z testcontainers), nie produkcyjnej bazy danych ani produkcyjnego endpointu pocztowego. Test uprawnień wykonany wyłącznie kontem administracyjnym nie jest testem izolacji.
 
-CI udostępnia kroki: lint, typecheck, testy jednostkowe, integracja PostgreSQL i build. Testy E2E obejmują krytyczne przepływy dotknięte zmianą. Podstawowe skrypty uruchamiane z katalogu głównego to `npm run lint`, `npm run typecheck` i `npm run build`; skrypty testowe mają jednoznacznie wskazywać rodzaj uruchamianych testów.
+CI dla każdego pull requesta uruchamia: lint (z formatem i typecheckiem), testy jednostkowe z progiem 100%, build oraz integrację na PostgreSQL z testcontainers razem ze scenariuszami agent-browser na tymczasowej instancji aplikacji. Testy E2E obejmują krytyczne przepływy dotknięte zmianą. Podstawowe skrypty uruchamiane z katalogu głównego to `npm run lint`, `npm run typecheck` i `npm run build`; skrypty testowe mają jednoznacznie wskazywać rodzaj uruchamianych testów.
 
-Testy na PGlite lub z symulowaną integracją nie zastępują weryfikacji rzeczywistego PostgreSQL, Auth i Storage. Raport walidacji podaje środowisko, zakres i rzeczywisty wynik wykonanych kontroli. Nie deklarujemy wyniku testu, którego nie uruchomiono. Dla zmiany dokumentacji wystarcza kontrola treści, odwołań i diffu.
+Testy na PGlite lub z symulowaną integracją nie zastępują weryfikacji rzeczywistego PostgreSQL, uwierzytelniania i magazynu plików. Raport walidacji podaje środowisko, zakres i rzeczywisty wynik wykonanych kontroli. Nie deklarujemy wyniku testu, którego nie uruchomiono. Dla zmiany dokumentacji wystarcza kontrola treści, odwołań i diffu.
 
-Źródła: [Vitest](https://vitest.dev/guide/), [Playwright best practices](https://playwright.dev/docs/best-practices).
+Źródła: [Vitest](https://vitest.dev/guide/), [Vitest coverage](https://vitest.dev/guide/coverage), [Testcontainers for Node.js](https://node.testcontainers.org/), [agent-browser](https://github.com/vercel-labs/agent-browser).
 
 ### Checklista review
 

@@ -1,38 +1,26 @@
-import { createContainer, InjectionMode, type AwilixContainer } from "awilix";
+import { createContainer, InjectionMode, type AwilixContainer, type Resolver } from "awilix";
+
+/** Container typed with the full cradle assembled in the composition root. */
+export type AppContainer<TCradle extends object> = AwilixContainer<TCradle>;
 
 /**
- * Rejestr zależności dostępnych w kontenerze DI.
- *
- * Każdy pakiet dopisuje swoje rejestracje przez declaration merging:
- *
- * ```ts
- * declare module "@validuo/core/di" {
- *   interface Cradle {
- *     orm: MikroORM;
- *   }
- * }
- * ```
+ * Registrations for a cradle: one resolver per key, with the matching type. Packages export
+ * registrations for their own fragment (e.g. `Registrations<DbCradle>`); the composition root
+ * spreads them into `Registrations<AppCradle>`, so a missing or mistyped dependency fails to compile.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- rozszerzany przez declaration merging
-export interface Cradle {}
-
-export type AppContainer = AwilixContainer<Cradle>;
-
-/** Moduł DI: funkcja rejestrująca zależności jednego pakietu lub obszaru aplikacji. */
-export type DiModule = (container: AppContainer) => void;
+export type Registrations<TCradle extends object> = { readonly [K in keyof TCradle]-?: Resolver<TCradle[K]> };
 
 /**
- * Tworzy kontener w trybie PROXY (zależności wstrzykiwane jako obiekt `cradle`,
- * odporne na minifikację) i w trybie `strict` (wykrywa m.in. singletony zależne
- * od zależności o krótszym cyklu życia).
+ * Creates the container in PROXY mode (dependencies injected as one object, safe under
+ * minification) and `strict` mode (Awilix rejects e.g. singletons depending on scoped registrations).
  */
-export function createAppContainer(modules: readonly DiModule[] = []): AppContainer {
-  const container = createContainer<Cradle>({
+export function createAppContainer<TCradle extends Record<string, unknown>>(
+  registrations: Registrations<TCradle>,
+): AppContainer<TCradle> {
+  const container = createContainer<TCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
   });
-  for (const register of modules) {
-    register(container);
-  }
+  container.register(registrations);
   return container;
 }

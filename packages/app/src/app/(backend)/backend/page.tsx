@@ -8,9 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@vali
 import { getContainer } from "@/server/container";
 
 export default async function BackendDashboardPage() {
-  // Stan bazy sprawdzamy przy każdym żądaniu, nie podczas prerenderingu.
+  // Checked on every request, never while prerendering.
   await connection();
-  const db = await checkDatabase(getContainer().resolve("orm"));
+  const container = getContainer();
+  const db = await checkDatabase(container.resolve("orm"));
+  if (!db.ok) {
+    // Raw driver errors stay in the server log; the panel only shows the status.
+    container.resolve("logger").warn("Database unavailable", { operation: "backend.dashboard", reason: db.reason });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,9 +29,8 @@ export default async function BackendDashboardPage() {
             <CardTitle>Baza danych</CardTitle>
             <CardDescription>PostgreSQL przez MikroORM</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-start gap-2">
+          <CardContent>
             <Badge variant={db.ok ? "default" : "destructive"}>{db.ok ? "Połączono" : "Niedostępna"}</Badge>
-            {!db.ok && <p className="text-sm text-muted-foreground">{db.reason}</p>}
           </CardContent>
         </Card>
         <Card>

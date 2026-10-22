@@ -1,16 +1,17 @@
 import { checkDatabase } from "@validuo/db";
 
-import { getContainer } from "@/server/container";
+import { apiHandler } from "@/server/http/api-handler";
+import { HttpError } from "@/server/http/http-error";
 
-export async function GET() {
-  const db = await checkDatabase(getContainer().resolve("orm"));
+export type HealthStatus = { status: "ok"; db: "ok" };
+
+export const GET = apiHandler<HealthStatus>("health.check", async ({ scope }) => {
+  const db = await checkDatabase(scope.resolve("orm"));
   if (!db.ok) {
-    // Szczegóły błędu tylko w logach serwera — endpoint jest publiczny.
-    console.error("[health] database unavailable:", db.reason);
+    // The endpoint is public: the reason goes to the server log only.
+    throw new HttpError(503, "ServiceUnavailable", "Usługa jest chwilowo niedostępna.", {
+      cause: new Error(db.reason),
+    });
   }
-
-  return Response.json(
-    { status: db.ok ? "ok" : "degraded", db: db.ok ? "ok" : "unavailable" },
-    { status: db.ok ? 200 : 503 },
-  );
-}
+  return { data: { status: "ok", db: "ok" } };
+});

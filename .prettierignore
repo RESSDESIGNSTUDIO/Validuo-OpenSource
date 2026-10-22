@@ -1,0 +1,13 @@
+# Generated or vendored files
+package-lock.json
+**/.next/
+**/next-env.d.ts
+*.tsbuildinfo
+packages/db/src/migrations/
+
+# shadcn/ui primitives and theme keep the CLI's formatting so `shadcn add`/`diff` stay reviewable.
+packages/ui/src/components/
+packages/ui/src/styles/globals.css
+
+# Markdown is prose (the nextjs-agent-rules block in AGENTS.md must stay byte-for-byte).
+*.md

@@ -3,9 +3,9 @@ import type { MikroORM } from "@mikro-orm/postgresql";
 export type DatabaseStatus = { ok: true } | { ok: false; reason: string };
 
 /**
- * Sprawdza połączenie prawdziwym zapytaniem. `orm.checkConnection()` nie wystarcza:
- * ORM tworzony konstruktorem łączy się leniwie, więc przed pierwszym zapytaniem
- * zawsze zgłasza „Connection not established”.
+ * Checks the connection with a real query. `orm.checkConnection()` is not enough: an ORM created
+ * with the constructor connects lazily, so before the first query it always reports
+ * "Connection not established".
  */
 export async function checkDatabase(orm: MikroORM): Promise<DatabaseStatus> {
   try {

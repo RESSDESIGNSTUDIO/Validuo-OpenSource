@@ -2,25 +2,31 @@ import path from "node:path";
 
 import { Migrator } from "@mikro-orm/migrations";
 import { defineConfig } from "@mikro-orm/postgresql";
-// Import domyślny: CLI ładuje ten plik jako ESM, a @next/env to moduł CommonJS bez nazwanych eksportów.
-import nextEnv from "@next/env";
+import { parseServerEnv } from "@validuo/core/config";
+import { loadRootEnv } from "@validuo/core/config/load-env";
 
 import { createOrmConfig } from "./config";
 
-// Pliki .env* leżą w katalogu głównym monorepo — te same, które ładuje Next.js.
-nextEnv.loadEnvConfig(path.resolve(import.meta.dirname, "../../.."), process.env.NODE_ENV !== "production");
+// Same `.env*` files and the same validation as the Next.js app.
+loadRootEnv();
 
-/** Konfiguracja dla CLI MikroORM (`npm run db -- <komenda>`): runtime + migracje. */
+const env = parseServerEnv(process.env);
+const migrationsPath = path.join(import.meta.dirname, "migrations");
+
+/**
+ * Config for the MikroORM CLI (`npm run db -- <command>`, `npm run db:migrate`, …): runtime options
+ * plus the Migrator, connected with the migration account (`MIGRATION_DATABASE_URL`).
+ */
 export default defineConfig({
-  ...createOrmConfig(),
+  ...createOrmConfig({ ...env.database, url: env.migrationDatabaseUrl }),
   extensions: [Migrator],
   migrations: {
-    // Ścieżki absolutne — niezależne od katalogu, z którego uruchomiono CLI.
-    path: path.join(import.meta.dirname, "migrations"),
-    pathTs: path.join(import.meta.dirname, "migrations"),
+    // Absolute paths — independent of the directory the CLI is started from.
+    path: migrationsPath,
+    pathTs: migrationsPath,
     glob: "!(*.d).ts",
     snapshot: true,
-    // Stała nazwa zamiast domyślnej `.snapshot-<dbName>.json` — niezależna od środowiska.
+    // Fixed name instead of `.snapshot-<dbName>.json`, so it does not depend on the environment.
     snapshotName: ".snapshot",
   },
 });

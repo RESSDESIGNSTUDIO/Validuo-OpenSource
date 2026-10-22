@@ -50,3 +50,9 @@ Po zielonej weryfikacji: push `d68e6db`, `b7c7d73` na `origin/main`; gałąź `f
 3. `test:integration` i `test:e2e` przechodzą w GitHub Actions (testcontainers + agent-browser); lokalnie `test:integration` przechodzi z `TEST_DATABASE_URL`.
 4. Workflow uruchamia się dla PR i pokazuje cztery osobne checki.
 5. `AGENTS.md` zawiera zasadę 100% pokrycia.
+
+## Realizacja
+
+- Zgodnie z przeglądem planu: zależności w pakietach-właścicielach z dokładnymi wersjami (`testcontainers`, `@testcontainers/postgresql` → `@validuo/db`; `agent-browser`, `tsx` → `@validuo/app`; `@vitest/coverage-v8` → root), osobne wejście `@validuo/db/testing/vitest` (bez Vitest w skryptach `tsx`), `teardownTimeout` 30 s, `next start` w osobnej grupie procesów z drenowaniem stdout/stderr i sprzątaniem przy `exit`, w CI `sysctl kernel.apparmor_restrict_unprivileged_userns=0` zamiast `--no-sandbox`.
+- Zmiana stosu testów (testcontainers, agent-browser zamiast Playwright) — na wyraźne polecenie użytkownika z 2026-10-22; standard i `AGENTS.md` zaktualizowane.
+- Wynik: PR #1, przebieg CI `39863346185` — Lint, Unit tests (73 testy, 100% we wszystkich metrykach), Build, Integration tests (5 testów integracyjnych na PostgreSQL z testcontainers, 3 scenariusze agent-browser) — wszystkie zielone. Log: `.ai/runs/2026-10-22-ci-testing.md`.

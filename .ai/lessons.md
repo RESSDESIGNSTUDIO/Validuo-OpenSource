@@ -66,3 +66,6 @@ Sandbox nie ma Dockera (testcontainers: „Could not find a working container ru
 
 ### 2026-10-22 — `next build` restartuje worker podglądu `next dev`
 Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` — to nie osierocony proces testowy. Zanim cokolwiek zabijesz, sprawdź PPID (podgląd: rodzic `next dev`) i `environ` (`NODE_ENV=development`, współdzielone `DATABASE_URL`).
+
+### 2026-10-22 — Ochrona gałęzi niedostępna w prywatnym repo na darmowym planie
+`branch protection` i `rulesets` zwracają 403 („Upgrade to GitHub Pro or make this repository public”). Wymóg zielonych checków przed merge'em nie jest więc egzekwowany technicznie — działa z konwencji (`AGENTS.md`, sekcja „Git, pull requesty i merge”). Gdy repo przejdzie na plan Pro lub stanie się publiczne, włącz ochronę `main` z wymaganymi checkami: Lint, Unit tests (100% coverage), Build, Integration tests.

@@ -156,6 +156,18 @@ ui, core ──► (brak pakietów workspace)
 | `npm run db:migration:list` | Lista wykonanych migracji. |
 | `npm run db -- <komenda>` | Dowolna komenda CLI MikroORM (np. `debug`, `migration:pending`) — bez `schema:update --run`/`schema:fresh`/`schema:drop`. |
 
+## Git, pull requesty i merge
+
+- **Nikt nie pushuje bezpośrednio do `main`** (dotyczy też agentów AI). Każda zmiana idzie przez gałąź i pull request. GitHub nie pozwala wymusić ochrony gałęzi w tym planie repozytorium, więc zasada obowiązuje z konwencji — nie obchodź jej.
+- **Nazwy gałęzi:** `<typ>/<krótki-opis>`, typ: `feat`, `fix`, `refactor`, `docs`, `ci`, `test`, `chore` (np. `feat/employee-groups`). Gałąź powstaje od aktualnego `main`.
+- **Commity i tytuł PR:** styl Conventional Commits (`feat:`, `fix:`, `docs:`, `ci:`…), opis po polsku. Jeden PR = jeden zrozumiały cel, bez przypadkowych rename i aktualizacji zależności; powiąż go ze specyfikacją z `.ai/specs/`.
+- **Opis PR** wypełnia szablon `.github/pull_request_template.md`: Cel, Zmiany, Weryfikacja (rzeczywiste wyniki), checklista review z rozdz. 10 standardu, Ograniczenia.
+- **Warunki merge'a:** wszystkie checki CI zielone — **Lint**, **Unit tests (100% coverage)**, **Build**, **Integration tests** — gałąź aktualna względem `main` oraz akceptacja człowieka. PR z czerwonym checkiem nie jest mergowany; nie obchodź CI (`--admin`, wyłączanie checków, obniżanie progów).
+- **Sposób merge'a: wyłącznie squash** (ustawienie repozytorium). Tytuł i opis PR stają się commitem na `main`, więc tytuł musi być w stylu Conventional Commits.
+- **Gałęzie po merge'u są usuwane automatycznie.** Historia pozostaje w PR (commity, diff, dyskusja, wyniki CI); usuniętą gałąź przywraca przycisk „Restore branch".
+- **Agent AI** samodzielnie tworzy gałąź, commituje i otwiera PR, ale **nigdy nie merguje bez wyraźnego polecenia człowieka**, nie robi force-pusha na wspólne gałęzie i nie pushuje do `main`. Po otwarciu PR obserwuje CI i naprawia czerwone checki na tej samej gałęzi.
+- Po zmianie reguł procesu w tej sekcji zaktualizuj też `.github/pull_request_template.md` i `README.md`.
+
 # Spec-Driven Development i pamięć projektu (`.ai/`)
 
 Ten projekt wykorzystuje katalog `.ai/` jako jedyne źródło prawdy dla specyfikacji, logów autonomicznych przebiegów AI oraz wniosków/lekcji. **Każdy agent AI pracujący w tym repozytorium musi przestrzegać poniższych zasad.**

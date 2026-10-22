@@ -194,6 +194,10 @@ Dopisz `GroupSchema` do listy w `packages/db/src/entities/index.ts`, uruchom `np
 
 **Nowy komponent shadcn.** `npx shadcn add <komponent> -c packages/app` w katalogu głównym. Komponent trafi do `packages/ui/src/components/` i importuje się go jako `@validuo/ui/components/<komponent>`.
 
+## Pull requesty i merge
+
+Zmiany trafiają do `main` wyłącznie przez pull request z gałęzi `<typ>/<opis>` (np. `feat/employee-groups`, `fix/health-check`). Opis PR wypełnia szablon (`.github/pull_request_template.md`), a merge wymaga zielonych checków CI (Lint, Unit tests, Build, Integration tests) i akceptacji. Mergujemy wyłącznie **squash** — PR staje się jednym commitem w stylu Conventional Commits — a gałąź jest po merge'u usuwana automatycznie (historia zostaje w PR). Pełne zasady: `AGENTS.md`, sekcja „Git, pull requesty i merge".
+
 ## Praca z agentami AI
 
 Zasady dla agentów kodujących są w `AGENTS.md`: główny plik opisuje architekturę i proces, a pliki w każdym pakiecie dodają szczegóły. Katalog `.ai/` zawiera specyfikacje (`specs/`), logi przebiegów (`runs/`) i wnioski (`lessons.md`).

@@ -37,4 +37,4 @@ Obowiązują zasady z głównego `AGENTS.md` (architektura, DI, API, UI, weryfik
 - Nie dodawaj tu Tailwinda ani motywu — są w `@validuo/ui` (`globals.css` tylko importuje `@validuo/ui/globals.css`).
 - Komponenty shadcn dodawaj z root: `npx shadcn add <komponent> -c packages/app` (konfiguracja: `components.json`).
 - `next.config.ts` jest kompilowany do CommonJS; `.env*` ładuje wyłącznie przez `loadRootEnv()` z `@validuo/core/config/load-env`.
-- Testy: `*.test.ts` obok kodu (moduły `server-only` działają w Vitest dzięki aliasowi w `vitest.config.ts`); `*.integration.test.ts` ustawiają `DATABASE_URL` jawnie z `requireTestDatabaseUrl()`.
+- Testy: `*.test.ts(x)` obok kodu ze 100% pokrycia (moduły `server-only` działają w Vitest dzięki aliasowi w `vitest.config.ts`; strony renderuj `renderToStaticMarkup`, mockując `next/server`, `@/server/container` i `@validuo/db`); `*.integration.test.ts` ustawiają `DATABASE_URL` jawnie z `testDatabaseUrl()`. Infrastruktura E2E w `testing/` (`startAppServer`, `createAgentBrowser`, `ephemeral-app.ts`), scenariusze w `e2e/*.spec.ts`.

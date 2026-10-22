@@ -1,4 +1,4 @@
-import { requireTestDatabaseUrl } from "@validuo/db/testing";
+import { testDatabaseUrl } from "@validuo/db/testing/vitest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type * as ContainerModule from "./container";
@@ -6,8 +6,8 @@ import type * as ContainerModule from "./container";
 let containerModule: typeof ContainerModule;
 
 beforeAll(async () => {
-  // The composition root reads DATABASE_URL; point it at the guarded test database explicitly.
-  vi.stubEnv("DATABASE_URL", requireTestDatabaseUrl());
+  // The composition root reads DATABASE_URL; point it at the test database explicitly.
+  vi.stubEnv("DATABASE_URL", testDatabaseUrl());
   containerModule = await import("./container");
 });
 

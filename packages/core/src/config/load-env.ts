@@ -15,6 +15,6 @@ export const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
  * `next.config.ts` and the database tooling so both see exactly the same configuration.
  * Variables already present in `process.env` win.
  */
-export function loadRootEnv(): void {
-  loadEnvConfig(repositoryRoot, process.env.NODE_ENV !== "production");
+export function loadRootEnv(dir: string = repositoryRoot): void {
+  loadEnvConfig(dir, process.env.NODE_ENV !== "production");
 }

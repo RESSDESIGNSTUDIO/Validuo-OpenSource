@@ -28,7 +28,7 @@ Validuo to aplikacja webowa SaaS (pracownicy, grupy, działy, dokumenty, szkolen
 | CSS | **Tailwind CSS 4** | Wspólne tokeny motywu w `@validuo/ui`. |
 | UI — panel | **shadcn/ui** (styl `radix-nova`, Radix UI, lucide-react) | Panel `/backend` składany z komponentów `@validuo/ui`. |
 | Jakość | **ESLint** (granice pakietów), **Prettier** (jedyny formatter) | |
-| Testy | **Vitest** (unit + integracja na PostgreSQL) | Playwright (E2E) dodajemy z pierwszym scenariuszem przeglądarkowym. |
+| Testy | **Vitest** (unit z progiem **100%** pokrycia, `@vitest/coverage-v8`), **testcontainers** (PostgreSQL 17 dla integracji), **agent-browser** (scenariusze przeglądarkowe na tymczasowej instancji aplikacji) | Zasady: sekcja „Testy” niżej. |
 | Menedżer pakietów | **npm** (workspaces) | Nie zmieniaj na pnpm/yarn/bun. Jeden `package-lock.json` w root. |
 
 Nowa biblioteka musi rozwiązywać konkretny problem, którego nie pokrywają obecne narzędzia. Wersje ustala lockfile; nie używamy `latest` (także w `npx`).
@@ -44,8 +44,8 @@ Nowa biblioteka musi rozwiązywać konkretny problem, którego nie pokrywają ob
 │   └── ui/     @validuo/ui   — prymitywy shadcn/ui, generyczne wzorce panelu, `cn`, motyw i globalny CSS Tailwind
 ├── tsconfig.base.json        — wspólna konfiguracja TypeScript
 ├── eslint.config.mjs         — jedna konfiguracja ESLint dla całego repo (w tym granice pakietów)
-├── vitest.config.ts          — projekty testów `unit` i `integration`
-├── .github/workflows/ci.yml  — lint, format, typecheck, unit, build + integracja na PostgreSQL 17
+├── vitest.config.ts          — projekty testów `unit` (pokrycie 100%), `integration`, `e2e`
+├── .github/workflows/ci.yml  — checki PR: Lint, Unit tests (100%), Build, Integration tests (testcontainers + agent-browser)
 └── .env.example              — wzór zmiennych środowiskowych (pliki .env* trzymamy w root)
 ```
 
@@ -76,7 +76,7 @@ ui, core ──► (brak pakietów workspace)
 - Foldery domen w liczbie mnogiej, ta sama nazwa we wszystkich warstwach (`employees`, `groups`); pliki i foldery kebab-case.
 - `EmployeeService`, `EmployeeRepository` (port w `core`), `MikroOrmEmployeeRepository` (adapter w `db`), `MailGateway`/`FileStoragePort`, klucze DI camelCase (`employeeService`), schematy `employeeCreateSchema`, błędy `ForbiddenError`, zdarzenia `groups.invitation.created`.
 - Encje: `EmployeeSchema` w `db/src/entities/<domena>/<nazwa>.entity.ts`; tabele snake_case w liczbie mnogiej. Nazwy tabel, wartości enumów i sygnatury RPC to kontrakty — konwencja nie jest powodem do ich zmiany.
-- Testy: `<nazwa>.test.ts` (unit), `<nazwa>.integration.test.ts` (PostgreSQL), E2E `<scenariusz>.spec.ts`.
+- Testy: `<nazwa>.test.ts` / `.test.tsx` (unit), `<nazwa>.integration.test.ts` (PostgreSQL), E2E `packages/app/e2e/<scenariusz>.spec.ts`.
 
 ## Dependency Injection (Awilix)
 
@@ -115,7 +115,7 @@ ui, core ──► (brak pakietów workspace)
 
 - **Frontend** — `packages/app/src/app/(frontend)`: strony publiczne stylowane wyłącznie klasami Tailwind (tokeny motywu dozwolone). **Nie** importuj tam `@validuo/ui/components/*` (wymusza ESLint).
 - **Backend** — `packages/app/src/app/(backend)/backend` (URL `/backend`): panel z komponentów shadcn/ui z `@validuo/ui`. Generyczne wzorce panelu (formularze, tabele, feedback) → `ui/src/backend/`; komponenty domenowe → `app/src/features/<domena>/components/`.
-- Komponenty shadcn dodajemy CLI z katalogu głównego przypiętą wersją: `npx shadcn add <komponent> -c packages/app` — trafiają do `packages/ui/src/components/`. Nie kopiuj ich ręcznie. Prymitywy i `globals.css` nie są formatowane Prettierem (zostaje styl CLI, diffy z upstreamem są czytelne). Nowy kod może wymagać poprawek pod `exactOptionalPropertyTypes`.
+- Komponenty shadcn dodajemy CLI z katalogu głównego przypiętą wersją: `npx shadcn add <komponent> -c packages/app` — trafiają do `packages/ui/src/components/`. Nie kopiuj ich ręcznie. Prymitywy i `globals.css` nie są formatowane Prettierem (zostaje styl CLI, diffy z upstreamem są czytelne). Nowy kod może wymagać poprawek pod `exactOptionalPropertyTypes` i — jak każdy kod w `src` — musi mieć testy jednostkowe ze 100% pokrycia.
 - Importy: `@validuo/ui/components/<nazwa>`, `@validuo/ui/lib/utils` (`cn`), `@validuo/ui/hooks/<nazwa>`.
 - Motyw (tokeny CSS), `@import "tailwindcss"` i `@source` pakietu `ui`: jedno miejsce — `packages/ui/src/styles/globals.css`, importowane w `packages/app/src/app/globals.css`. Nie twórz drugiego wejścia Tailwinda.
 - Domyślnie Server Components; `"use client"` tylko dla interakcji i hooków przeglądarki. Stany: ładowanie, pusta lista, błąd, zapis, brak dostępu; dostępność (klawiatura, etykiety, focus); układ < 700 px, 700–1099 px, ≥ 1100 px.
@@ -127,6 +127,17 @@ ui, core ──► (brak pakietów workspace)
 - Strony czytające bazę muszą być renderowane na żądanie (np. `await connection()` z `next/server`). Prywatnych danych nie czytamy podczas statycznego generowania.
 - `next.config.ts` jest kompilowany przez Next.js do CommonJS — `@next/env` ładuje tam wyłącznie `loadRootEnv()` (wspólny loader działa w CJS i ESM).
 
+## Testy
+
+- **Zasada: każda nowa funkcja musi mieć 100% pokrycia testami jednostkowymi** — 100% instrukcji, gałęzi, funkcji i linii dla całego kodu w `packages/*/src`, który dodaje lub zmienia. Dotyczy także poprawek błędów, refaktorów i komponentów dodanych przez `shadcn add`. Funkcja bez takich testów nie jest skończona.
+- Próg wymusza `npm run test:unit` (`thresholds: { 100: true }` w `vitest.config.ts`) i check **Unit tests** w CI — PR poniżej 100% nie może zostać zmergowany.
+- Z pomiaru wyłączone są wyłącznie: pliki testów, `*.d.ts` i wygenerowane migracje (`packages/db/src/migrations/**`). **Nie dodawaj nowych wykluczeń, `/* v8 ignore */` ani nie obniżaj progów bez wyraźnej zgody człowieka.** Kod nietestowalny jednostkowo refaktoryzuj (wstrzykiwane zależności, czyste funkcje), zamiast go wykluczać.
+- Infrastruktura testów leży poza `src` i nie jest kodem produkcyjnym: `packages/db/testing` (`@validuo/db/testing`: `startTestDatabase`, `requireTestDatabaseUrl`; `@validuo/db/testing/vitest`: `testDatabaseUrl()`), `packages/app/testing` (`startAppServer`, `createAgentBrowser`, `appUrl()`), `packages/app/e2e`.
+- Testy jednostkowe: obok kodu, bez bazy i sieci; zależności przez mocki/porty testowe (`vi.mock`, fałszywe implementacje portów). Komponenty i strony renderuj `react-dom/server` (`renderToStaticMarkup`, async Server Components: `await Page()`).
+- Testy integracyjne (`*.integration.test.ts`): global setup uruchamia **PostgreSQL 17 przez testcontainers** (wymaga Dockera) i stosuje migracje MikroORM; URL bazy z `testDatabaseUrl()`. Bez Dockera ustaw `TEST_DATABASE_URL` (baza z `test` w nazwie, różna od `DATABASE_URL`). Nigdy nie używaj `DATABASE_URL` w testach.
+- Testy E2E (`packages/app/e2e/*.spec.ts`): global setup startuje bazę jak wyżej i zbudowaną aplikację (`npm run build` wcześniej) przez `next start` na wolnym porcie; scenariusze sterują przeglądarką przez **agent-browser** (`createAgentBrowser()` — przypięta wersja, `--json`, osobna `--session`).
+- **Ręczne / agentowe testy UI:** `npm run build && npm run app:ephemeral` uruchamia tymczasową bazę i aplikację i wypisuje URL; potem `npx agent-browser --session <nazwa> open <url>`, `snapshot`, `screenshot`, `close`. Pierwsze użycie: `npx agent-browser install` (Linux: `--with-deps`). Jeśli środowisko nie pozwala uruchomić Chrome lub Dockera, napisz to wprost w raporcie.
+
 ## Polecenia (uruchamiaj z katalogu głównego)
 
 | Polecenie | Opis |
@@ -136,8 +147,10 @@ ui, core ──► (brak pakietów workspace)
 | `npm run lint` | ESLint dla całego repo. |
 | `npm run format` / `npm run format:check` | Prettier: formatowanie / sprawdzenie (CI). |
 | `npm run typecheck` | `tsc --noEmit` w każdym pakiecie (w `app` poprzedzone `next typegen`). |
-| `npm run test:unit` (`npm test`) | Vitest — testy jednostkowe (`*.test.ts`). |
-| `npm run test:integration` | Vitest — testy na PostgreSQL; wymaga `TEST_DATABASE_URL` wskazującego bazę z `test` w nazwie, różną od `DATABASE_URL`. |
+| `npm run test:unit` (`npm test`) | Vitest — testy jednostkowe z pokryciem; błąd poniżej 100%. Raport HTML: `coverage/`. |
+| `npm run test:integration` | Vitest — testy na PostgreSQL 17 (testcontainers albo `TEST_DATABASE_URL`). |
+| `npm run test:e2e` | Vitest + agent-browser na tymczasowej instancji aplikacji (wymaga `npm run build`, Dockera lub `TEST_DATABASE_URL`, Chrome z `npx agent-browser install`). |
+| `npm run app:ephemeral` | Tymczasowa baza + aplikacja do testów ręcznych/agentowych przez agent-browser (Ctrl+C kończy). |
 | `npm run db:migration:create` | Generuje migrację z różnicy encji i snapshotu (`packages/db/src/migrations`). |
 | `npm run db:migrate` / `npm run db:migration:down` | Stosuje / cofa migracje (konto `MIGRATION_DATABASE_URL`, domyślnie `DATABASE_URL`). |
 | `npm run db:migration:list` | Lista wykonanych migracji. |
@@ -179,7 +192,7 @@ Ten projekt wykorzystuje katalog `.ai/` jako jedyne źródło prawdy dla specyfi
 - Przy większych zmianach zleć niezależny przegląd planu (np. subagentowi w roli senior/staff engineera) przed rozpoczęciem implementacji.
 
 ### Weryfikacja
-- Nie uznawaj zadania za skończone bez weryfikacji. Minimum to `npm run lint`, `npm run format:check`, `npm run typecheck` (`tsc --noEmit` w każdym pakiecie — w root nie ma `tsconfig.json`, więc samo `npx tsc --noEmit` nic nie sprawdzi) i `npm run test:unit`; przy zmianach w routingu, konfiguracji, zależnościach lub buildzie także `npm run build`, a przy zmianach w `db`/SQL — `npm run test:integration` na tymczasowej bazie.
+- Nie uznawaj zadania za skończone bez weryfikacji. Minimum to `npm run lint`, `npm run format:check`, `npm run typecheck` (`tsc --noEmit` w każdym pakiecie — w root nie ma `tsconfig.json`, więc samo `npx tsc --noEmit` nic nie sprawdzi) i `npm run test:unit` (100% pokrycia); przy zmianach w routingu, konfiguracji, zależnościach lub buildzie także `npm run build`, przy zmianach w `db`/SQL — `npm run test:integration`, a przy zmianach UI lub zachowania aplikacji — `npm run test:e2e` lub sprawdzenie przez `app:ephemeral` + agent-browser. Te same kontrole uruchamia CI dla każdego PR.
 - Testy proporcjonalne do ryzyka (rozdz. 10 standardu): reguły i przypadki użycia — unit z portami testowymi; izolacja tenantów/grup, RLS na roli runtime, atomowość i wyścigi — integracja na PostgreSQL (dwie niezależne transakcje dla współbieżności). Raport podaje środowisko i rzeczywisty wynik — nie deklaruj wyniku testu, którego nie uruchomiono.
 - Przed oddaniem przejdź checklistę review z rozdz. 10 standardu.
 - Zmiany w `packages/db` (encje, migracje, konfiguracja) weryfikuj na osobnej, tymczasowej bazie, nigdy na współdzielonej.

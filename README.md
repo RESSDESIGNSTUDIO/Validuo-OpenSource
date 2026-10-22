@@ -17,7 +17,7 @@ Obowiązujące standardy inżynieryjne (architektura, nazewnictwo, reguły domen
 | Walidacja | [Zod 4](https://zod.dev) |
 | Style | [Tailwind CSS 4](https://tailwindcss.com); panel: [shadcn/ui](https://ui.shadcn.com) (Radix UI, lucide-react) |
 | Jakość | ESLint (granice pakietów), Prettier |
-| Testy | [Vitest](https://vitest.dev) — unit i integracja na PostgreSQL |
+| Testy | [Vitest](https://vitest.dev) (unit, 100% pokrycia), [Testcontainers](https://node.testcontainers.org/) (PostgreSQL 17), [agent-browser](https://github.com/vercel-labs/agent-browser) (E2E) |
 | Monorepo | npm workspaces |
 
 ## Architektura
@@ -104,7 +104,7 @@ Pliki `.env*` leżą w **katalogu głównym**. Ładuje je jeden loader (`loadRoo
 | `DB_POOL_MIN` / `DB_POOL_MAX` | nie | Rozmiar puli połączeń (domyślnie `0` / `10`) |
 | `DB_DEBUG` | nie | `true` włącza logowanie zapytań SQL |
 | `MIGRATION_DATABASE_URL` | nie | Konto migracyjne (właściciel tabel) dla CLI MikroORM; domyślnie `DATABASE_URL` |
-| `TEST_DATABASE_URL` | do testów integracyjnych | Tylko ze środowiska powłoki; baza z `test` w nazwie, różna od `DATABASE_URL` |
+| `TEST_DATABASE_URL` | nie | Tylko dla testów bez Dockera: baza z `test` w nazwie, różna od `DATABASE_URL` (domyślnie testy startują PostgreSQL przez testcontainers) |
 
 ## Uruchomienie
 
@@ -133,24 +133,37 @@ Uruchamiaj je z katalogu głównego.
 | `npm run lint` | ESLint dla całego repozytorium |
 | `npm run format` / `npm run format:check` | Prettier: formatowanie / sprawdzenie |
 | `npm run typecheck` | Sprawdzenie typów w każdym pakiecie |
-| `npm run test:unit` (`npm test`) | Testy jednostkowe (Vitest, `*.test.ts`) |
-| `npm run test:integration` | Testy integracyjne na PostgreSQL (`*.integration.test.ts`, wymaga `TEST_DATABASE_URL`) |
+| `npm run test:unit` (`npm test`) | Testy jednostkowe z pokryciem — błąd poniżej 100% |
+| `npm run test:integration` | Testy integracyjne na PostgreSQL 17 z testcontainers (`*.integration.test.ts`) |
+| `npm run test:e2e` | Scenariusze agent-browser na tymczasowej instancji aplikacji (po `npm run build`) |
+| `npm run app:ephemeral` | Tymczasowa baza + aplikacja do ręcznych/agentowych testów przez agent-browser |
 | `npm run db:migration:create` | Nowa migracja na podstawie zmian w encjach |
 | `npm run db:migrate` | Zastosowanie oczekujących migracji |
 | `npm run db:migration:down` | Cofnięcie ostatniej migracji |
 | `npm run db:migration:list` | Lista wykonanych migracji |
 | `npm run db -- <komenda>` | Dowolna komenda CLI MikroORM, np. `npm run db -- debug` |
 
-CI (`.github/workflows/ci.yml`) uruchamia lint, format, typecheck, testy jednostkowe i build, a w osobnym jobie migracje i testy integracyjne na PostgreSQL 17.
+CI (`.github/workflows/ci.yml`) uruchamia dla każdego pull requesta cztery checki: **Lint** (ESLint, Prettier, typecheck), **Unit tests** (próg 100% pokrycia), **Build** i **Integration tests** (PostgreSQL z testcontainers, migracje, scenariusze agent-browser na tymczasowej instancji aplikacji).
 
-### Testy integracyjne lokalnie
+### Testy
+
+- **Każda nowa funkcja musi mieć 100% pokrycia testami jednostkowymi** (zasada z `AGENTS.md`, wymuszana przez `npm run test:unit` i CI).
+- Integracja i E2E potrzebują Dockera (testcontainers). Bez Dockera wskaż jednorazową bazę:
 
 ```bash
 createdb validuo_test
 TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/validuo_test npm run test:integration
 ```
 
-Uruchomienie bez `TEST_DATABASE_URL`, z bazą bez `test` w nazwie albo z tą samą bazą co `DATABASE_URL` kończy się błędem — testy nigdy nie korzystają z `DATABASE_URL`.
+  Baza musi mieć `test` w nazwie i różnić się od `DATABASE_URL` — testy nigdy nie korzystają z `DATABASE_URL`.
+- E2E i testy ręczne przez [agent-browser](https://github.com/vercel-labs/agent-browser):
+
+```bash
+npx agent-browser install       # Chrome for Testing (Linux: --with-deps)
+npm run build
+npm run test:e2e                # scenariusze z packages/app/e2e
+npm run app:ephemeral           # tymczasowa instancja; potem np. npx agent-browser --session s open <url>
+```
 
 ## Typowe zadania
 

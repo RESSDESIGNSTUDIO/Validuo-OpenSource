@@ -57,3 +57,12 @@ Plan zakładał niezacommitowane drzewo (snapshot `gitStatus`), a w trakcie sesj
 
 ### 2026-10-22 — Specyfikacja sprzeczna z AGENTS.md: najpierw zapytaj
 Standard (`engineering-standards.md`) wskazywał migracje Supabase, więc zamieniłem migrator MikroORM na Supabase CLI bez pytania, choć `AGENTS.md` zapisywał MikroORM jako obowiązujące założenie. Użytkownik to odrzucił: **projekt nie używa Supabase** (ani Auth, ani Storage, ani CLI) — migracje i persystencja wyłącznie MikroORM + PostgreSQL. Zmiany cofnięto, a standard poprawiono. Następnym razem: gdy specyfikacja lub standard przeczy założeniu z `AGENTS.md` (biblioteka, narzędzie, właściciel schematu, dostawca), wskaż konflikt i zapytaj człowieka przed implementacją — sama obecność zapisu w specyfikacji nie jest akceptacją zmiany architektury.
+
+### 2026-10-22 — Testy jednostkowe stron i pokrycie 100% w Vitest 5
+Pliki wyłącznie z typami i barrel re-eksporty dają w v8 0/0 i liczą się jako 100% — nie wykluczaj ich. Async Server Components testuj jako `renderToStaticMarkup(await Page())`, mockując `next/server` (`connection`), `@/server/container` i `@validuo/db`; importy CSS w layoutach Vitest zamienia na puste moduły. `@next/env` ładowany przez `createRequire` nie da się podmienić `vi.mock` i cache'uje wynik w procesie — testuj go na prawdziwym katalogu tymczasowym. `coverage.enabled` nie ustawiaj w konfiguracji (próg 100% objąłby integrację i E2E) — tylko `--coverage` w `test:unit`.
+
+### 2026-10-22 — testcontainers i agent-browser w sandboxie
+Sandbox nie ma Dockera (testcontainers: „Could not find a working container runtime strategy”) ani bibliotek Chromium (agent-browser: „Chrome not found”/brak `libnss3`). Lokalnie integrację i E2E uruchamiaj z `TEST_DATABASE_URL` (strażnik `requireTestDatabaseUrl`); scenariusze przeglądarkowe weryfikuje dopiero CI. `agent-browser` 0.39 ma binarkę w paczce (bez `postinstall`), odpowiada `{"success":…,"data"|"error"}` przy `--json`; na Ubuntu 24.04 w CI Chrome potrzebuje `sysctl kernel.apparmor_restrict_unprivileged_userns=0` zamiast `--no-sandbox`.
+
+### 2026-10-22 — `next build` restartuje worker podglądu `next dev`
+Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` — to nie osierocony proces testowy. Zanim cokolwiek zabijesz, sprawdź PPID (podgląd: rodzic `next dev`) i `environ` (`NODE_ENV=development`, współdzielone `DATABASE_URL`).

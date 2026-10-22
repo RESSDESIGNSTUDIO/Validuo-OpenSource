@@ -26,7 +26,7 @@ Dokument określa stos technologiczny, architekturę, konwencje kodu i kryteria 
 | Monorepo | npm workspaces: `app`, `core`, `db`, `ui` |
 | Walidacja | Zod 4, wspólne schematy wejścia i DTO |
 | Jakość | ESLint z regułami granic pakietów, TypeScript, jeden formatter |
-| Testy | Vitest dla reguł i usług, PostgreSQL dla integracji, Playwright dla scenariuszy przeglądarkowych |
+| Testy | Vitest (unit, 100% pokrycia kodu `src`), PostgreSQL przez testcontainers dla integracji, agent-browser dla scenariuszy przeglądarkowych na tymczasowej instancji aplikacji |
 
 Dokładne wersje zależności ustala lockfile po sprawdzeniu kompatybilności. Nie stosujemy `latest` w CI. Nowa biblioteka musi rozwiązywać konkretny problem, którego nie pokrywają obecne narzędzia.
 
@@ -421,20 +421,20 @@ Pozostałe domeny, np. `audit-history`, `notifications`, `accounts`, otrzymują 
 
 | Warstwa | Co sprawdzamy |
 |---|---|
-| Unit | Stany terminów, walidacja pól, reguły planu, decyzje policy, przypadki użycia z portami testowymi |
+| Unit (100% pokrycia) | Stany terminów, walidacja pól, reguły planu, decyzje policy, przypadki użycia z portami testowymi, komponenty i strony |
 | Integracja DB | Constraints, RLS/granty na roli runtime, izolacja tenantów i grup, atomowość, wyścigi limitów i transferu |
 | API | Brak sesji, odmowa dostępu, walidacja, mass assignment, konflikty, ograniczona paginacja, neutralny błąd |
 | UI | Edycja, walidacja, loading/error/empty, wielokrotny submit, klawiatura i focus |
-| E2E | Logowanie, grupa i pracownik, zaproszenie, viewer bez edycji, utrata dostępu po odebraniu członkostwa |
+| E2E (agent-browser) | Logowanie, grupa i pracownik, zaproszenie, viewer bez edycji, utrata dostępu po odebraniu członkostwa |
 | Zadania i integracje | Powtórna dostawa, timeout dostawcy, retry i brak duplikacji audytu/outboxa |
 
-Testy integracyjne używają izolowanej bazy, nie produkcyjnej bazy danych ani produkcyjnego endpointu pocztowego. Test uprawnień wykonany wyłącznie kontem administracyjnym nie jest testem izolacji.
+Każda nowa funkcja ma 100% pokrycia testami jednostkowymi (instrukcje, gałęzie, funkcje, linie); próg wymusza CI. Testy integracyjne używają izolowanej bazy (kontener PostgreSQL z testcontainers), nie produkcyjnej bazy danych ani produkcyjnego endpointu pocztowego. Test uprawnień wykonany wyłącznie kontem administracyjnym nie jest testem izolacji.
 
-CI udostępnia kroki: lint, typecheck, testy jednostkowe, integracja PostgreSQL i build. Testy E2E obejmują krytyczne przepływy dotknięte zmianą. Podstawowe skrypty uruchamiane z katalogu głównego to `npm run lint`, `npm run typecheck` i `npm run build`; skrypty testowe mają jednoznacznie wskazywać rodzaj uruchamianych testów.
+CI dla każdego pull requesta uruchamia: lint (z formatem i typecheckiem), testy jednostkowe z progiem 100%, build oraz integrację na PostgreSQL z testcontainers razem ze scenariuszami agent-browser na tymczasowej instancji aplikacji. Testy E2E obejmują krytyczne przepływy dotknięte zmianą. Podstawowe skrypty uruchamiane z katalogu głównego to `npm run lint`, `npm run typecheck` i `npm run build`; skrypty testowe mają jednoznacznie wskazywać rodzaj uruchamianych testów.
 
 Testy na PGlite lub z symulowaną integracją nie zastępują weryfikacji rzeczywistego PostgreSQL, uwierzytelniania i magazynu plików. Raport walidacji podaje środowisko, zakres i rzeczywisty wynik wykonanych kontroli. Nie deklarujemy wyniku testu, którego nie uruchomiono. Dla zmiany dokumentacji wystarcza kontrola treści, odwołań i diffu.
 
-Źródła: [Vitest](https://vitest.dev/guide/), [Playwright best practices](https://playwright.dev/docs/best-practices).
+Źródła: [Vitest](https://vitest.dev/guide/), [Vitest coverage](https://vitest.dev/guide/coverage), [Testcontainers for Node.js](https://node.testcontainers.org/), [agent-browser](https://github.com/vercel-labs/agent-browser).
 
 ### Checklista review
 

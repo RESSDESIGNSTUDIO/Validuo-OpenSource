@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./testing/index.ts",
+    "./testing/vitest": "./testing/vitest.ts"
   },
   "scripts": {
     "mikro-orm": "mikro-orm",
@@ -19,6 +20,8 @@
   },
   "devDependencies": {
     "@mikro-orm/cli": "^7.2.5",
+    "@testcontainers/postgresql": "12.2.1",
+    "testcontainers": "12.2.1",
     "tsx": "^4.23.15"
   },
   "mikro-orm": {

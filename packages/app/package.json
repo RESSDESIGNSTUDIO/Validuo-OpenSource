@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "NODE_ENV=production next build",
     "start": "NODE_ENV=production next start",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "ephemeral": "tsx testing/ephemeral-app.ts"
   },
   "dependencies": {
     "@next/env": "16.4.2",
@@ -22,6 +23,8 @@
   },
   "devDependencies": {
     "@types/react": "^19",
-    "@types/react-dom": "^19"
+    "@types/react-dom": "^19",
+    "agent-browser": "0.39.2",
+    "tsx": "4.23.15"
   }
 }

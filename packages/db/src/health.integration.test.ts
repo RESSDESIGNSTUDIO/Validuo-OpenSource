@@ -3,9 +3,9 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createOrmConfig } from "./config";
 import { checkDatabase } from "./health";
-import { requireTestDatabaseUrl } from "./testing";
+import { testDatabaseUrl } from "../testing/vitest";
 
-const database = { url: requireTestDatabaseUrl(), poolMin: 0, poolMax: 2, debug: false };
+const database = { url: testDatabaseUrl(), poolMin: 0, poolMax: 2, debug: false };
 
 describe("checkDatabase", () => {
   const orm = new MikroORM(createOrmConfig(database));

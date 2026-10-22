@@ -1,4 +1,5 @@
 import {
+  ConfigurationError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
@@ -12,17 +13,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiHandler } from "./api-handler";
 import { HttpError } from "./http-error";
 
-const { logger, scope } = vi.hoisted(() => {
+const { logger, getContainer, withRequestScope } = vi.hoisted(() => {
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() };
   logger.child.mockReturnValue(logger);
   const scope = { resolve: vi.fn(() => logger), dispose: vi.fn() };
-  return { logger, scope };
+  return {
+    logger,
+    scope,
+    getContainer: vi.fn(() => scope),
+    withRequestScope: vi.fn(async (fn: (s: typeof scope) => Promise<unknown>) => fn(scope)),
+  };
 });
 
-vi.mock("../container", () => ({
-  getContainer: () => scope,
-  withRequestScope: async <T>(fn: (s: typeof scope) => Promise<T>) => fn(scope),
-}));
+vi.mock("../container", () => ({ getContainer, withRequestScope }));
 
 const noParams = { params: Promise.resolve({}) };
 type Route = (request: Request, segment: typeof noParams) => Promise<Response>;
@@ -107,6 +110,36 @@ describe("apiHandler", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ ok: false, error: { code: "ServiceUnavailable" } });
     expect(logger.warn).toHaveBeenCalledWith("Request failed", expect.objectContaining({ error }));
+  });
+
+  it("does not log 4xx transport errors", async () => {
+    const error = new HttpError(400, "BadRequest", "Nieprawidłowe żądanie.");
+
+    const response = await call(apiHandler("test.fail", () => Promise.reject(error)));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ ok: false, error: { code: "BadRequest" } });
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("still answers and logs when the container itself cannot be built", async () => {
+    const failure = new ConfigurationError("Invalid environment configuration");
+    withRequestScope.mockRejectedValueOnce(failure);
+    getContainer.mockImplementationOnce(() => {
+      throw failure;
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await call(apiHandler("test.ok", async () => ({ data: null })));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ ok: false, error: { code: "Internal" } });
+    expect(JSON.parse(String(consoleError.mock.calls[0]?.[0]))).toMatchObject({
+      level: "error",
+      operation: "test.ok",
+      error: { name: "ConfigurationError" },
+    });
+    consoleError.mockRestore();
   });
 
   it("hides unexpected errors behind a neutral message and logs them", async () => {

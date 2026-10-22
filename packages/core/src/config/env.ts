@@ -55,6 +55,6 @@ export function parseServerEnv(source: EnvSource): ServerEnv {
   if (result.success) {
     return result.data;
   }
-  const problems = result.error.issues.map((issue) => `- ${issue.path.join(".") || "(root)"}: ${issue.message}`);
+  const problems = result.error.issues.map((issue) => `- ${issue.path.join(".")}: ${issue.message}`);
   throw new ConfigurationError(`Invalid environment configuration:\n${problems.join("\n")}`);
 }

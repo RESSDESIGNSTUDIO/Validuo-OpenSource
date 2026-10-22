@@ -8,7 +8,7 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - `src/di.ts` — typ `DbCradle` (`orm` singleton z disposerem `orm.close()`, `em` scoped fork) i `dbRegistrations(database)`; składane w `packages/app/src/server/container.ts`.
 - `src/entities/` — encje `<domena>/<nazwa>.entity.ts` i jawna lista `entities` w `index.ts`.
 - `src/health.ts` — `checkDatabase(orm)`.
-- `src/testing/` (`@validuo/db/testing`) — `requireTestDatabaseUrl()` i `globalSetup` projektu Vitest `integration`.
+- `testing/` (poza `src`, infrastruktura testów) — `@validuo/db/testing`: `startTestDatabase()` (PostgreSQL 17 z testcontainers albo `TEST_DATABASE_URL`, migracje MikroORM), `requireTestDatabaseUrl()`; `@validuo/db/testing/vitest`: `testDatabaseUrl()`; `postgres.global-setup.ts` projektu `integration`.
 - `src/mikro-orm.config.ts` — konfiguracja CLI MikroORM (`npm run db -- <komenda>`, `db:migration:*`): `loadRootEnv()` + `parseServerEnv`, Migrator, połączenie kontem `MIGRATION_DATABASE_URL` (domyślnie `DATABASE_URL`). Wskazana w `package.json` (`mikro-orm.configPaths`).
 - `src/migrations/` — migracje i `.snapshot.json` (commitowane; wyłączone z ESLint i Prettiera).
 - Docelowo (z pierwszą funkcją): `src/repositories/<domena>/mikro-orm-<nazwa>.repository.ts` (adaptery portów z `core`), `src/transactions/mikro-orm-unit-of-work.ts`.
@@ -21,4 +21,4 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - Operacja atomowa: jedna transakcja na jednym `EntityManager` obejmuje zmianę, kontrolę konfliktu/limitu (z blokadą lub inną sprawdzoną ochroną współbieżności) i wpis audytu/outboxa. SMTP/Storage poza transakcją (outbox).
 - Nie importuj z `@validuo/app`, `@validuo/ui`, `next`, React ani bezpośrednio `awilix` (wymusza ESLint).
 - Nowe pakiety `@mikro-orm/*` dopisz do `serverExternalPackages` w `packages/app/next.config.ts`.
-- Testy integracyjne (`*.integration.test.ts`) wyłącznie na bazie z `requireTestDatabaseUrl()`; uprawnienia i RLS testujemy na roli runtime, nie na właścicielu tabel.
+- Kod w `src` ma 100% pokrycia testami jednostkowymi (bez bazy: fałszywe `orm`/`em` lub leniwy ORM bez połączenia). Testy integracyjne (`*.integration.test.ts`) wyłącznie na bazie z `testDatabaseUrl()`; uprawnienia i RLS testujemy na roli runtime, nie na właścicielu tabel.

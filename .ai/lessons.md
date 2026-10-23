@@ -72,3 +72,6 @@ Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` 
 
 ### 2026-10-23 — Zawieszony krok CI blokuje PR na godziny
 Krok `agent-browser install --with-deps` (apt + pobranie Chrome) zawisł na ponad 18 minut; bez `timeout-minutes` job trwałby do domyślnego limitu 6 godzin. Anulowany przebieg trzeba najpierw dokończyć (`gh run cancel`, poczekać na `completed`), dopiero potem `gh run rerun --failed` zadziała. Wniosek: każdy job i krok ma limit czasu, kroki sieciowe są ponawiane (`.github/scripts/retry.sh`), a `ci-rerun.yml` wznawia przebieg po timeoucie. Testów nie ponawiamy.
+
+### 2026-10-23 — `agent-browser install --with-deps` zawiesza CI przez `fonts-noto-cjk`
+Przyczyną zawieszeń nie była sieć ogólnie, lecz pobieranie 61 MB `fonts-noto-cjk` z mirrora `azure.archive.ubuntu.com` (stało po kilku MB). `--with-deps` instaluje je zawsze, a obraz `ubuntu-24.04` ma już wszystkie biblioteki Chrome. W CI używamy samego `agent-browser install` + `agent-browser doctor` (test headless launch). `--with-deps` zostaje dla świeżych maszyn bez bibliotek.

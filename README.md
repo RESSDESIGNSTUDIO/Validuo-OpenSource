@@ -159,7 +159,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/validuo_test npm r
 - E2E i testy ręczne przez [agent-browser](https://github.com/vercel-labs/agent-browser):
 
 ```bash
-npx agent-browser install       # Chrome for Testing (Linux: --with-deps)
+npx agent-browser install       # Chrome for Testing (Linux: dodaj --with-deps, jeśli brakuje bibliotek)
 npm run build
 npm run test:e2e                # scenariusze z packages/app/e2e
 npm run app:ephemeral           # tymczasowa instancja; potem np. npx agent-browser --session s open <url>

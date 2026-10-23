@@ -88,12 +88,13 @@ jobs:
       - run: .github/scripts/retry.sh 3 240 npm ci
       # Ubuntu 24.04 blocks unprivileged user namespaces, which Chrome's sandbox needs.
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      # Chrome for Testing and its apt dependencies come from the network and have hung before.
-      - run: ../../.github/scripts/retry.sh 3 300 npx agent-browser install --with-deps
+      # Chrome for Testing comes from the network. `--with-deps` is deliberately not used: it also
+      # installs fonts-noto-cjk (61 MB from the Azure apt mirror), which stalled the job, and the
+      # runner image already ships every library Chrome needs. `doctor` proves a headless launch works.
+      - run: ../../.github/scripts/retry.sh 3 300 npx agent-browser install
         working-directory: packages/app
       - run: npx agent-browser doctor
         working-directory: packages/app
-        continue-on-error: true
         timeout-minutes: 3
       # Pull the image up front (with retries) so testcontainers starts from a local copy.
       - run: .github/scripts/retry.sh 3 300 docker pull postgres:17

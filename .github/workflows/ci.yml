@@ -12,10 +12,14 @@ concurrency:
 permissions:
   contents: read
 
+# Every job has a time limit: a hung step must not block a pull request for hours. Steps that use
+# the network are retried (`.github/scripts/retry.sh`), and `ci-rerun.yml` re-runs a run once when
+# a step was cancelled by a timeout, so nothing is left unfinished.
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -23,14 +27,19 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm install --global npm@11.19.0
-      - run: npm ci
+        timeout-minutes: 5
+      - run: .github/scripts/retry.sh 3 240 npm ci
       - run: npm run lint
+        timeout-minutes: 5
       - run: npm run format:check
+        timeout-minutes: 5
       - run: npm run typecheck
+        timeout-minutes: 5
 
   unit:
     name: Unit tests (100% coverage)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -38,13 +47,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm install --global npm@11.19.0
-      - run: npm ci
+        timeout-minutes: 5
+      - run: .github/scripts/retry.sh 3 240 npm ci
       # Fails when statements, branches, functions or lines of packages/*/src drop below 100%.
       - run: npm run test:unit
+        timeout-minutes: 8
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -52,13 +64,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm install --global npm@11.19.0
-      - run: npm ci
+        timeout-minutes: 5
+      - run: .github/scripts/retry.sh 3 240 npm ci
       # The build must not need a database or runtime secrets.
       - run: npm run build
+        timeout-minutes: 10
 
   integration:
     name: Integration tests (testcontainers + agent-browser)
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       # Close idle agent-browser daemons quickly instead of after the default hour.
       AGENT_BROWSER_IDLE_TIMEOUT_MS: "60000"
@@ -69,15 +84,23 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm install --global npm@11.19.0
-      - run: npm ci
+        timeout-minutes: 5
+      - run: .github/scripts/retry.sh 3 240 npm ci
       # Ubuntu 24.04 blocks unprivileged user namespaces, which Chrome's sandbox needs.
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - run: npx agent-browser install --with-deps
+      # Chrome for Testing and its apt dependencies come from the network and have hung before.
+      - run: ../../.github/scripts/retry.sh 3 300 npx agent-browser install --with-deps
         working-directory: packages/app
       - run: npx agent-browser doctor
         working-directory: packages/app
         continue-on-error: true
+        timeout-minutes: 3
+      # Pull the image up front (with retries) so testcontainers starts from a local copy.
+      - run: .github/scripts/retry.sh 3 300 docker pull postgres:17
       - run: npm run build
+        timeout-minutes: 10
       # PostgreSQL 17 comes from testcontainers (Docker on the runner), migrated with MikroORM.
       - run: npm run test:integration
+        timeout-minutes: 8
       - run: npm run test:e2e
+        timeout-minutes: 8

@@ -69,3 +69,6 @@ Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` 
 
 ### 2026-10-22 — Ochrona gałęzi niedostępna w prywatnym repo na darmowym planie
 `branch protection` i `rulesets` zwracają 403 („Upgrade to GitHub Pro or make this repository public”). Wymóg zielonych checków przed merge'em nie jest więc egzekwowany technicznie — działa z konwencji (`AGENTS.md`, sekcja „Git, pull requesty i merge”). Gdy repo przejdzie na plan Pro lub stanie się publiczne, włącz ochronę `main` z wymaganymi checkami: Lint, Unit tests (100% coverage), Build, Integration tests.
+
+### 2026-10-23 — Zawieszony krok CI blokuje PR na godziny
+Krok `agent-browser install --with-deps` (apt + pobranie Chrome) zawisł na ponad 18 minut; bez `timeout-minutes` job trwałby do domyślnego limitu 6 godzin. Anulowany przebieg trzeba najpierw dokończyć (`gh run cancel`, poczekać na `completed`), dopiero potem `gh run rerun --failed` zadziała. Wniosek: każdy job i krok ma limit czasu, kroki sieciowe są ponawiane (`.github/scripts/retry.sh`), a `ci-rerun.yml` wznawia przebieg po timeoucie. Testów nie ponawiamy.

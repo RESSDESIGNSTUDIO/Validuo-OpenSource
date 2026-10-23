@@ -7,8 +7,8 @@ Przekształcić starter Next.js w monorepo aplikacji **Validuo** z czterema paki
 ## Kontekst
 
 - Repo zawiera starter `create-next-app` (Next 16.3.4, React 19.2.8) w `src/`, bez Tailwinda i bez bazy.
-- Środowisko udostępnia PostgreSQL 17 i zmienną `DATABASE_URL` (baza `open-mercato`).
-- Podgląd (`openmercato.toml`) uruchamia `npm run dev -- --hostname 0.0.0.0 --port 3000` w katalogu głównym — skrypt `dev` w root musi przekazywać argumenty do pakietu `app`.
+- Środowisko udostępnia PostgreSQL 17 i zmienną `DATABASE_URL` (współdzielona baza środowiska).
+- Podgląd (plik konfiguracji podglądu środowiska) uruchamia `npm run dev -- --hostname 0.0.0.0 --port 3000` w katalogu głównym — skrypt `dev` w root musi przekazywać argumenty do pakietu `app`.
 - `next dev` dopisuje blok `nextjs-agent-rules` do `AGENTS.md` w katalogu projektu Next.js — po przeniesieniu aplikacji będzie to `packages/app/AGENTS.md`, więc ten plik musi już zawierać blok.
 
 ## Zakres
@@ -71,7 +71,7 @@ Przekształcić starter Next.js w monorepo aplikacji **Validuo** z czterema paki
 - `/api/health` nie zwraca treści błędu (endpoint publiczny) — szczegóły trafiają do logu serwera; panel `/backend` pokazuje przyczynę.
 - Dodano `checkDatabase(orm)` w `@validuo/db`, bo `orm.checkConnection()` przy leniwym połączeniu zawsze zwraca błąd przed pierwszym zapytaniem.
 - Snapshot migracji ma stałą nazwę `.snapshot.json` (domyślna zawierała nazwę bazy); ścieżki migracji są absolutne.
-- Skrypty `build`/`start` wymuszają `NODE_ENV=production` (sandbox ma globalnie `NODE_ENV=development`).
+- Skrypty `build`/`start` wymuszają `NODE_ENV=production` (środowisko agenta ma globalnie `NODE_ENV=development`).
 - Reguła „frontend bez komponentów shadcn” jest egzekwowana przez ESLint.
 - Root nie ma `tsconfig.json`; typy sprawdza `npm run typecheck` per pakiet.
-- Weryfikacja UI: odpowiedzi HTTP i wygenerowany HTML/CSS; wizualnie nie sprawdzono (brak bibliotek systemowych dla Chromium w sandboxie).
+- Weryfikacja UI: odpowiedzi HTTP i wygenerowany HTML/CSS; wizualnie nie sprawdzono (brak bibliotek systemowych dla Chromium w środowisku agenta).

@@ -11,8 +11,8 @@ Przekształcenie startera Next.js w monorepo `packages/{app,core,db,ui}` ze stos
 - `.env*` w root, ładowane przez `@next/env` w `next.config.ts` i w konfiguracji CLI MikroORM.
 
 ## Problemy
-- **Subagent wykonał `schema.update()` i migracje na współdzielonej bazie `open-mercato`** (fallback na `DATABASE_URL`). Analiza OID wskazuje, że baza była wcześniej pusta. Utworzone tabele `users`, `counter`, `mikro_orm_migrations` pozostawiono do decyzji użytkownika.
-- `NODE_ENV=development` w sandboxie psuł `next build` → wymuszenie `NODE_ENV=production` w skryptach.
+- **Subagent wykonał `schema.update()` i migracje na współdzielonej bazie środowiska** (fallback na `DATABASE_URL`). Analiza OID wskazuje, że baza była wcześniej pusta. Utworzone tabele `users`, `counter`, `mikro_orm_migrations` pozostawiono do decyzji użytkownika.
+- `NODE_ENV=development` w środowisku agenta psuł `next build` → wymuszenie `NODE_ENV=production` w skryptach.
 - Interop CJS/ESM dla `@next/env` różni się między `next.config.ts` a CLI MikroORM.
 - `orm.checkConnection()` przy leniwym połączeniu → `checkDatabase()`.
 - Brak bibliotek systemowych dla Chromium → brak weryfikacji wizualnej.
@@ -22,5 +22,5 @@ Szczegóły: `.ai/lessons.md`.
 `npm run lint`, `npm run typecheck`, `npm run build` przechodzą. Na tymczasowej instancji PostgreSQL sprawdzono: CLI (`debug`, `migration:create/up/down/list`), DI (scope → osobny `em`, wspólny `orm`, dispose), `/api/health` (200 / 503 / powrót do 200), `/` i `/backend` (dev i prod). shadcn CLI instaluje komponenty do `packages/ui`.
 
 ## Kolejne kroki
-- Decyzja o usunięciu tabel testowych z `open-mercato`.
+- Decyzja o usunięciu tabel testowych ze współdzielonej bazy środowiska.
 - Uwierzytelnianie panelu `/backend`, pierwsze encje domenowe, testy (osobne specyfikacje).

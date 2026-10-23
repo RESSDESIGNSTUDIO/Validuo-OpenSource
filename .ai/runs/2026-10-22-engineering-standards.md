@@ -12,14 +12,14 @@ Dostosować fundament monorepo do `.ai/specs/engineering-standards.md` (prośba 
 - Narzędzia: `.nvmrc`, `engines`, `exactOptionalPropertyTypes`, ESLint z granicami wg standardu, Prettier, Vitest (`unit`/`integration`), CI GitHub Actions, `supabase/config.toml` (`project_id = "validuo"`, PG 17).
 - Dokumentacja: `AGENTS.md` (root i pakiety), `README.md`, `.env.example`, wnioski w `.ai/lessons.md`.
 
-## Weryfikacja (sandbox: Node 24.21, npm 11.19, PostgreSQL 17.11 z `initdb` na porcie 54329)
+## Weryfikacja (środowisko agenta: Node 24.21, npm 11.19, PostgreSQL 17.11 z `initdb`)
 - `npm run lint`, `format:check`, `typecheck`, `test:unit` (21 testów), `build` (bez `DATABASE_URL`) — OK.
 - `npm run test:integration` na `validuo_test` (4 testy) — OK; bez `TEST_DATABASE_URL` i dla bazy `postgres` — odmowa z kodem 1.
 - ESLint: 12 zakazanych importów w plikach próbnych wykrytych, dozwolone (Awilix w `core/src/di`, `@validuo/ui/*` w `ui`) przepuszczone; pliki usunięte.
 - `next start`: z bazą — `/`, `/backend` 200, `/api/health` 200 `ApiResult` z `x-request-id` i `no-store`; z niedostępną bazą — 503 `ServiceUnavailable`, `/backend` pokazuje tylko „Niedostępna”, przyczyna w logu JSON z `requestId`; bez `DATABASE_URL` — błąd konfiguracji przy starcie, 500 na każde żądanie.
 - `npm run db:migrate` / `db:migration:list` / `db:migration:new` na tymczasowych bazach: migracja próbna zastosowana raz, ponowne uruchomienie bez zmian, pusta lista migracji OK, brak `MIGRATION_DATABASE_URL` → błąd. Migracja próbna usunięta.
 - Podgląd `next dev` (port 3000, HMR) — `/`, `/backend`, `/api/health` 200.
-- Nie uruchomiono: workflow CI na GitHubie (brak dostępu z sandboxa), Playwright (brak bibliotek systemowych Chromium; odroczony), weryfikacja wizualna UI.
+- Nie uruchomiono: workflow CI na GitHubie (brak dostępu ze środowiska agenta), Playwright (brak bibliotek systemowych Chromium; odroczony), weryfikacja wizualna UI.
 
 ## Problemy
 - Osierocony `next-server` po zabiciu procesu-rodzica dał fałszywie pozytywny wynik (odpowiadał stary serwer) — wykryte po `EADDRINUSE` w logu, procesy zamknięte po weryfikacji `cwd`/`environ`.

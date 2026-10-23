@@ -11,7 +11,7 @@ Korekta użytkownika po wdrożeniu standardu: „nie chcemy Supabase, korzystamy
 - Standard `engineering-standards.md`: migracje MikroORM; uwierzytelnianie i magazyn plików do wyboru w osobnych specyfikacjach (za portami, bez własnej kryptografii); RLS bez JWT Supabase (`SET LOCAL` w transakcji); usunięte `service_role`, publishable key, Data API, `supabase/` i odnośniki.
 - Dokumentacja: `AGENTS.md` (root: stos z regułą „bez Supabase”, migracje, polecenia; nowa reguła pracy o konflikcie specyfikacji z `AGENTS.md`), `packages/{db,app,core}/AGENTS.md`, `README.md`, `.env.example`, `.ai/lessons.md` (usunięty wpis o Supabase CLI, dodany wniosek z korekty).
 
-## Weryfikacja (tymczasowy PostgreSQL 17 na porcie 54329)
+## Weryfikacja (tymczasowy PostgreSQL 17)
 - `lint`, `format:check`, `typecheck`, `test:unit` (22), `build` — OK; `test:integration` (4) po `db:migrate` jak w CI — OK.
 - Encja próbna: `db:migration:create` → `db:migrate` (tabela `probes` utworzona) → `db:migration:list` → `db:migration:down` (tabela usunięta) — OK; encja i migracja próbna usunięte.
 - CLI łączy się `MIGRATION_DATABASE_URL`, gdy ustawione (runtime `DATABASE_URL` wskazywał nieistniejący port), a bez niego — `DATABASE_URL`.

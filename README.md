@@ -69,7 +69,7 @@ type ApiResult<T> =
   | { ok: false; error: { code: string; message: string; fieldErrors?: Record<string, string[]>; requestId?: string } };
 ```
 
-Błędy domenowe (`@validuo/core/errors`) mapowane są na statusy: `Unauthorized` 401, `Forbidden` 403, `NotFound` 404, `Validation` 422, `Conflict` i `PlanLimit` 409. Błędy transportu (`HttpError`, np. 503) mają własny status, a każdy inny błąd daje 500 z neutralnym komunikatem — szczegóły trafiają wyłącznie do logu JSON.
+Błędy domenowe (`@validuo/core/errors`) mapowane są na statusy: `Unauthorized` 401, `Forbidden` 403, `NotFound` 404, `Validation` 422, `Conflict` 409. Błędy transportu (`HttpError`, np. 503) mają własny status, a każdy inny błąd daje 500 z neutralnym komunikatem — szczegóły trafiają wyłącznie do logu JSON.
 
 ```ts
 import { apiHandler } from "@/server/http/api-handler";
@@ -179,7 +179,7 @@ export const GroupSchema = defineEntity({
   tableName: "groups",
   properties: {
     id: p.uuid().primary().onCreate(() => crypto.randomUUID()),
-    organizationId: p.uuid(),
+    accountId: p.uuid(),
     name: p.string(),
     createdAt: p.datetime().onCreate(() => new Date()),
   },
@@ -188,7 +188,7 @@ export const GroupSchema = defineEntity({
 export type Group = InferEntity<typeof GroupSchema>;
 ```
 
-Dopisz `GroupSchema` do listy w `packages/db/src/entities/index.ts`, uruchom `npm run db:migration:create`, przejrzyj wygenerowany SQL (uzupełnij FK, indeksy i constraints zakresu tenantów), wykonaj `npm run db:migrate` na lokalnej bazie i commituj migrację razem z `.snapshot.json`. Nazwę tabeli w liczbie mnogiej podawaj jawnie (`tableName`).
+Dopisz `GroupSchema` do listy w `packages/db/src/entities/index.ts`, uruchom `npm run db:migration:create`, przejrzyj wygenerowany SQL (uzupełnij FK, indeksy i constraints zakresu konta), wykonaj `npm run db:migrate` na lokalnej bazie i commituj migrację razem z `.snapshot.json`. Nazwę tabeli w liczbie mnogiej podawaj jawnie (`tableName`).
 
 **Nowa rejestracja w DI.** Klasa lub fabryka deklaruje tylko potrzebne zależności (`constructor({ groupRepository }: { groupRepository: GroupRepository })`). Dodaj klucz do `AppCradle` i resolver (z właściwym cyklem życia, zwykle `.scoped()`) w `buildContainer()` w `packages/app/src/server/container.ts`.
 

@@ -6,7 +6,6 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  PlanLimitError,
   UnauthorizedError,
   ValidationError,
 } from ".";
@@ -17,7 +16,6 @@ describe("AppError subclasses", () => {
     [ForbiddenError, "Forbidden"],
     [NotFoundError, "NotFound"],
     [ConflictError, "Conflict"],
-    [PlanLimitError, "PlanLimit"],
   ] as const)("%o carries code %s, its own name and the cause", (ErrorClass, code) => {
     const cause = new Error("root cause");
     const error = new ErrorClass("Komunikat dla użytkownika.", { cause });

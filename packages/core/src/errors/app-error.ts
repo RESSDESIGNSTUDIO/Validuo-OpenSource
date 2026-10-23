@@ -2,7 +2,7 @@
  * Application error codes. They are the contract between use cases and the transport layer:
  * HTTP maps them to statuses and clients recognise them without comparing messages.
  */
-export type AppErrorCode = "Unauthorized" | "Forbidden" | "NotFound" | "Validation" | "Conflict" | "PlanLimit";
+export type AppErrorCode = "Unauthorized" | "Forbidden" | "NotFound" | "Validation" | "Conflict";
 
 /** Field name → messages. */
 export type FieldErrors = Readonly<Record<string, readonly string[]>>;
@@ -49,9 +49,4 @@ export class ValidationError extends AppError {
 /** The operation conflicts with the current state (duplicate, concurrent change). */
 export class ConflictError extends AppError {
   readonly code = "Conflict";
-}
-
-/** The operation would exceed an account plan limit. */
-export class PlanLimitError extends AppError {
-  readonly code = "PlanLimit";
 }

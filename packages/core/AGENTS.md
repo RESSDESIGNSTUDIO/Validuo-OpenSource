@@ -8,7 +8,7 @@ Obecnie:
 
 - `src/config/env.ts` (`@validuo/core/config`) — schemat Zod zmiennych serwera i `parseServerEnv(source)` → `ServerEnv` (`database: DatabaseConfig`, `migrationDatabaseUrl`). Błąd `ConfigurationError` wymienia nazwy zmiennych, nigdy wartości.
 - `src/config/load-env.ts` (`@validuo/core/config/load-env`) — `loadRootEnv()` i `repositoryRoot`: jedyny loader `.env*` (na bazie `@next/env`), używany przez `next.config.ts` i narzędzia DB. Celowo bez importów względnych i ładuje `@next/env` przez `createRequire` — działa w CJS (`next.config.ts`), w `tsx` i w natywnym Node.
-- `src/errors/` (`@validuo/core/errors`) — `AppError` (`code: AppErrorCode`) i podklasy `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ValidationError` (`fieldErrors`), `ConflictError`, `PlanLimitError`; `ConfigurationError` (nie jest `AppError` → zawsze 500).
+- `src/errors/` (`@validuo/core/errors`) — `AppError` (`code: AppErrorCode`) i podklasy `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ValidationError` (`fieldErrors`), `ConflictError`; `ConfigurationError` (nie jest `AppError` → zawsze 500).
 - `src/di/` (`@validuo/core/di`) — `createAppContainer<TCradle>(registrations)`, typy `AppContainer<T>`, `Registrations<T>`, re-eksport `asClass`/`asFunction`/`asValue`/`aliasTo`/`Lifetime`. Jedyne miejsce importu `awilix`.
 
 Docelowo (rozdz. 9 standardu; tworzymy wraz z pierwszą funkcją): `domain/<domena>/`, `policies/*.policy.ts`, `services/<domena>/*.service.ts`, `ports/<domena>/*.repository.ts` / `*.gateway.ts` / `*.port.ts`, `ports/transactions/unit-of-work.port.ts`, `validators/<domena>/*.schema.ts`, `contracts/` (`@validuo/core/contracts` — schematy i DTO bez zależności serwerowych, importowane przez formularze i adaptery w `app`).

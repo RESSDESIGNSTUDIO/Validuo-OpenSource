@@ -3,7 +3,7 @@
 Data: 2026-10-22
 Status: obowiązujące standardy implementacji
 
-Validuo to webowa aplikacja open source (licencja AGPL-3.0-only) do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami. System monitoruje terminy ważności, obsługuje zaproszenia, przypomnienia i historię zmian oraz egzekwuje dostęp do danych i limity planów kont.
+Validuo to webowa aplikacja open source (licencja AGPL-3.0-only) do zarządzania pracownikami, grupami, strukturą działów, dokumentami, szkoleniami i uprawnieniami. System monitoruje terminy ważności, obsługuje zaproszenia, przypomnienia i historię zmian oraz egzekwuje dostęp do danych na podstawie uprawnień nadawanych osobom.
 
 Dokument określa stos technologiczny, architekturę, konwencje kodu i kryteria akceptacji zmian. Agent AI stosuje te reguły przy implementacji i code review. Ścieżki w strukturze pakietów wskazują miejsce dla danej odpowiedzialności; foldery i abstrakcje powstają dopiero wtedy, gdy wymaga ich realizowana funkcja.
 
@@ -45,8 +45,8 @@ Next.js obsługuje publiczny frontend i panel zalogowanych użytkowników. Słow
 | Złożona nazwa folderu lub pliku TS | kebab-case | `audit-history`, `employee-create.schema.ts` |
 | Model domenowy / encja | PascalCase, liczba pojedyncza | `Employee`, `GroupInvitation` |
 | Definicja encji ORM | `<Name>Schema`, plik `<name>.entity.ts` | `EmployeeSchema`, `employee.entity.ts` |
-| Tabela / kolumna SQL | snake_case; tabela w liczbie mnogiej | `employee_groups`, `organization_id` |
-| Pole TS | camelCase, jawne mapowanie istniejącej kolumny | `organizationId` |
+| Tabela / kolumna SQL | snake_case; tabela w liczbie mnogiej | `employee_groups`, `account_id` |
+| Pole TS | camelCase, jawne mapowanie istniejącej kolumny | `accountId` |
 | Usługa | PascalCase + `Service` | `EmployeeService` |
 | Port repozytorium | PascalCase + `Repository` | `EmployeeRepository` |
 | Port integracji | PascalCase + `Gateway` lub `Port` | `MailGateway`, `FileStoragePort` |
@@ -57,11 +57,11 @@ Next.js obsługuje publiczny frontend i panel zalogowanych użytkowników. Słow
 | Hook | `use` + opis stanu/interakcji | `useEmployeeFilters` |
 | Route | Zasób w liczbie mnogiej; `route.ts` | `api/groups/[groupId]/employees/route.ts` |
 | Strona | `page.tsx`, domyślny eksport PascalCase | `EmployeesPage` |
-| Błąd aplikacyjny | PascalCase + `Error` | `ForbiddenError`, `PlanLimitError` |
+| Błąd aplikacyjny | PascalCase + `Error` | `ForbiddenError`, `ConflictError` |
 | Zdarzenie | `concept.entity.action`, czas przeszły | `groups.invitation.created` |
 | Test | `<name>.test.ts`, E2E `<scenario>.spec.ts` | `employee.service.test.ts` |
 
-Nazwy tabel, wartości enumów i sygnatury RPC są kontraktami. Konwencja nie stanowi powodu do ich zmiany. Szczególnie `editor` jest techniczną rolą grupy prezentowaną jako Administrator, a nie automatycznie rolą `admin` organizacji.
+Nazwy tabel, wartości enumów i sygnatury RPC są kontraktami. Konwencja nie stanowi powodu do ich zmiany.
 
 ### Architektura i granice pakietów
 
@@ -94,30 +94,27 @@ Schematy i DTO mogą mieć publiczne wejście `@validuo/core/contracts`, bez zal
 - **Composition over inheritance:** małe usługi i funkcje zamiast `BaseService`, `BaseController` i wielopoziomowych klas bazowych.
 - **Explicit over implicit:** jawne rejestracje DI, jawne encje ORM, jawne DTO i dozwolone pola aktualizacji.
 - **YAGNI:** bez mikroserwisów, CQRS, event sourcingu, brokera i własnego systemu pluginów bez potwierdzonej potrzeby.
-- **Fail closed:** błąd odczytu członkostwa, planu lub sesji blokuje chronioną operację. Awarii nie mapujemy automatycznie na brak danych.
+- **Fail closed:** błąd odczytu uprawnień lub sesji blokuje chronioną operację. Awarii nie mapujemy automatycznie na brak danych.
 - **Idempotency:** ponowienie zaproszenia, zlecenia wysyłki lub zadania terminów nie może powielać skutków biznesowych.
 
 Nie wymagamy pary encja-usługa dla każdego pliku. Raport, policy lub serwis operujący na kilku encjach może istnieć bez własnej tabeli.
 
 ## 3. Reguły domenowe Validuo
 
-### Organizacje, grupy, role i plany
+### Konta, osoby i uprawnienia
 
-W kodzie występują trzy odrębne osie uprawnień:
+Validuo jest otwartą aplikacją bez płatności: **nie ma planów, poziomów kont ani limitów zasobów**. Każde konto ma na starcie takie same możliwości, a o tym, kto co może zrobić, decydują wyłącznie uprawnienia nadawane wewnątrz aplikacji.
 
-| Oś | Znaczenie | Weryfikacja |
-|---|---|---|
-| Członkostwo organizacji | Role `owner`, `admin`, `manager`, `viewer` | Konkretny tenant i operacja |
-| Członkostwo grupy | Role `owner`, `editor`, `viewer` | Konkretna grupa oraz dostęp do jej danych |
-| Plan konta | `free`, `premium`, `unlimited`, `admin` w `profiles.plan` | Limity i dostępność funkcji |
+- **Konto** to granica danych (tenant). Konto powstaje przy rejestracji, a jego twórca jest pierwszą osobą z pełnymi uprawnieniami. Dane jednego konta są niewidoczne dla innych kont.
+- **Osoba** (członek konta) nie ma domyślnego dostępu do niczego poza własnym profilem. Dostęp powstaje przez **uprawnienie nadane konkretnej osobie** przez osobę, która sama ma prawo je nadawać.
+- **Uprawnienie** to trójka: osoba, zakres (konto, grupa, a docelowo także inne zasoby) i czynność (np. odczyt, edycja, zarządzanie uprawnieniami). Katalog zakresów i czynności jest zdefiniowany w jednym miejscu w `core` jako nazwane stałe; jego treść ustala osobna, zaakceptowana specyfikacja produktu — nie zgadujemy jej w kodzie.
+- Gotowe zestawy uprawnień („szablony”, np. do podglądu lub do edycji) mogą ułatwiać nadawanie, ale są tylko skrótem: źródłem prawdy są uprawnienia zapisane dla osoby, a zmiana szablonu nie zmienia po cichu uprawnień już nadanych.
+- Nadawanie uprawnień jest samo chronioną czynnością: nikt nie nadaje ani nie odbiera uprawnień, których sam nie posiada, nie podnosi własnych uprawnień i nie odbiera ostatniej osobie prawa zarządzania uprawnieniami konta.
+- Stan widoczny w przeglądarce nie jest źródłem uprawnień. Zmiana uprawnień obowiązuje od następnego żądania — nie polegamy na uprawnieniach skopiowanych do sesji lub cache.
 
-Administrator platformy ma dodatkowe uprawnienia potwierdzane przez `platform_admins`; nie utożsamiamy tej zdolności wyłącznie z etykietą planu. Stan widoczny w przeglądarce nie jest źródłem uprawnień.
+Polityka dla przypadku użycia sprawdza zweryfikowanego użytkownika, konto, zakres (konkretną grupę lub pracownika) oraz czynność. Nie zastępujemy modelu uprawnień jednym `isAdmin` ani samym filtrem `account_id`. Brak uprawnienia oznacza odmowę (`fail closed`).
 
-Polityka dla przypadku użycia sprawdza zweryfikowanego użytkownika, właściwą organizację, dostęp do konkretnej grupy/pracownika, dozwoloną czynność oraz ograniczenia planu. Nie zastępujemy modelu uprawnień jednym `isAdmin` ani samym filtrem `organization_id`. Udostępniona grupa może mieć inny kontekst własności niż organizacja użytkownika.
-
-Limity kont: Free 1 własna grupa i 15 pracowników, Premium 5 własnych grup i 100 pracowników, Unlimited/Admin bez limitu. Free nie zaprasza ani nie przekazuje/otrzymuje własności; dostęp po zaproszeniu jest ograniczony do podglądu. Administrator grupy z planem Free nie uzyskuje prawa edycji przez samą rolę `editor`. Liczenie limitu musi odpowiadać regule w bazie, w tym zakresowi konta i współdzielonym pracownikom, a nie liczbie wierszy bieżącej strony UI.
-
-Sprawdzenie limitu i utworzenie zasobu stanowią jedną operację transakcyjną z blokadą właściwego właściciela/rekordu limitu lub inną sprawdzoną ochroną współbieżności. Dwa równoległe żądania nie mogą przekroczyć limitu. Zmiana planu jest operacją zaufanego backendu; klient nie przesyła wiarygodnego `plan`.
+Administrowanie samą instalacją (np. zarządzanie wieloma kontami przez operatora serwera) nie należy do modelu aplikacji; jeśli będzie potrzebne, wymaga osobnej specyfikacji i nie może być zrealizowane jako „specjalne konto”.
 
 ### Pracownicy, działy i pola dynamiczne
 
@@ -135,7 +132,7 @@ Wymagania określają dokumenty, szkolenia i uprawnienia wymagane dla pracownika
 
 - Rozróżniamy datę kalendarzową ważności (`date`) i moment zdarzenia (`timestamptz`). Nie zamieniamy daty ważności w północ UTC i nie przesuwamy jej konwersją strefy przeglądarki.
 - Jedna funkcja domenowa wylicza stan `missing`, `valid`, `expiring`, `expired` z dat, definicji wymagalności, jawnego progu ostrzegania i przekazanej daty odniesienia. Mapowanie między stanami domenowymi a wartościami API jest jawne.
-- Znaczenie „ważne do”, strefa wyliczeń i próg ostrzegania muszą wynikać z zaakceptowanej reguły produktu. Nie ustalamy arbitralnie 30 dni ani strefy całej organizacji.
+- Znaczenie „ważne do”, strefa wyliczeń i próg ostrzegania muszą wynikać z zaakceptowanej reguły produktu. Nie ustalamy arbitralnie 30 dni ani strefy całego konta.
 - Filtry dashboardu, listy pracowników i widoku przypomnień korzystają z tej samej reguły. Testujemy dzień graniczny, brak daty i przełom miesiąca/roku.
 - Wysyłka w tle korzysta z trwałego outboxa i klucza deduplikacji odbiorca/zdarzenie/termin. Przetwarzanie dopuszcza ponowienia; efekt ma być idempotentny. In-process emitter nie zapewnia trwałości.
 
@@ -144,7 +141,7 @@ Wymagania określają dokumenty, szkolenia i uprawnienia wymagane dla pracownika
 - Zaproszenie jest związane z grupą, uprawnionym nadawcą i odbiorcą. Przyjęcie weryfikuje uwierzytelnionego użytkownika, adres e-mail, ważność i stan zaproszenia.
 - Token zaproszenia jest sekretem, nie trafia do logów. Krótki kod dołączenia wymaga limitowania prób. Własności nie nadajemy na podstawie payloadu przeglądarki.
 - Utworzenie zaproszenia i zlecenia wysyłki zapisujemy atomowo. Awaria SMTP nie może wymuszać ponownego tworzenia zaproszenia ani być przedstawiana jako cofnięcie poprawnie zapisanego rekordu.
-- Przekazanie własności sprawdza właściciela, rolę odbiorcy i plany obu stron; zapis uprawnień i historii jest atomowy.
+- Przekazanie własności sprawdza uprawnienie nadającego i odbiorcę (musi należeć do konta); zapis uprawnień i historii jest atomowy.
 - Usunięcie konta uwzględnia przekazanie współdzielonych grup i usunięcie osieroconych danych. Nie projektujemy kaskady wyłącznie na podstawie pojedynczego FK.
 - Historia audytu opisuje aktora, czynność, cel, czas i istotną różnicę danych. Nie kopiuje tokenów, sekretów ani pełnych dokumentów.
 - Widoczność historii i możliwość otwarcia celu to osobne decyzje: historyczny wpis nie nadaje aktualnego dostępu do rekordu.
@@ -156,9 +153,9 @@ Wymagania określają dokumenty, szkolenia i uprawnienia wymagane dla pracownika
 
 Standardowe elementy, tworzone gdy pojawia się pierwszy używający ich endpoint:
 
-- `core/src/errors/app-error.ts`: kody `Unauthorized`, `Forbidden`, `NotFound`, `Validation`, `Conflict`, `PlanLimit`. Błędy domenowe nie budują odpowiedzi HTTP.
+- `core/src/errors/app-error.ts`: kody `Unauthorized`, `Forbidden`, `NotFound`, `Validation`, `Conflict`. Błędy domenowe nie budują odpowiedzi HTTP.
 - `app/src/server/http/api-handler.ts`: wspólne mapowanie błędów, korelacja logów, kontrola formatu odpowiedzi. Błąd nieoczekiwany zwraca neutralny komunikat.
-- `app/src/server/auth/`: weryfikacja sesji i budowa zaufanego kontekstu aktora. Reguły grup/planów pozostają w policy i usługach `core`.
+- `app/src/server/auth/`: weryfikacja sesji i budowa zaufanego kontekstu aktora. Reguły uprawnień pozostają w policy i usługach `core`.
 - `core/src/validators/<concept>/`: schematy poleceń i DTO. Walidujemy body, params i query; ustawiamy limity rozmiaru, długości i paginacji.
 - Route Handler i Server Action wywołują ten sam przypadek użycia. Nie duplikują reguł i nie omijają autoryzacji, nawet jeśli strona jest chroniona.
 
@@ -178,9 +175,9 @@ type ApiResult<T> =
     };
 ```
 
-Statusy HTTP pozostają znaczące: 400 dla niepoprawnej składni/parametrów, 401 dla braku sesji, 403 dla odmowy, 404 dla braku zasobu, 409 dla konfliktu lub limitu, 422 dla błędów pól, 429 dla ograniczenia żądań, 500 dla błędu nieoczekiwanego. Polityka 404 zamiast 403, jeśli chroni przed ujawnieniem istnienia zasobu, musi być spójna.
+Statusy HTTP pozostają znaczące: 400 dla niepoprawnej składni/parametrów, 401 dla braku sesji, 403 dla odmowy, 404 dla braku zasobu, 409 dla konfliktu, 422 dla błędów pól, 429 dla ograniczenia żądań, 500 dla błędu nieoczekiwanego. Polityka 404 zamiast 403, jeśli chroni przed ujawnieniem istnienia zasobu, musi być spójna.
 
-Nigdy nie wykonujemy `em.assign(entity, rawBody)` ani odpowiednika z nieprzefiltrowanym żądaniem. Identyfikator aktora, plan, rola i kontekst autoryzacji pochodzą z zaufanej warstwy. Tenant z adresu URL jest wyborem użytkownika wymagającym weryfikacji, nie dowodem uprawnienia.
+Nigdy nie wykonujemy `em.assign(entity, rawBody)` ani odpowiednika z nieprzefiltrowanym żądaniem. Identyfikator aktora, jego uprawnienia i kontekst autoryzacji pochodzą z zaufanej warstwy. Tenant z adresu URL jest wyborem użytkownika wymagającym weryfikacji, nie dowodem uprawnienia.
 
 `makeCrudRoute` można dodać dopiero przy powtarzalnym prostym CRUD. Zapraszanie, przekazanie własności, usuwanie konta i atomowa edycja pól są nazwanymi operacjami biznesowymi, nie konfiguracją uniwersalnego generatora.
 
@@ -211,7 +208,7 @@ Server Components odczytują dane przez serwerowe przypadki użycia i DTO, bez H
 - Jeden ORM i pula połączeń na proces; oddzielny EntityManager per request/job. Nie współdzielimy identity map między użytkownikami.
 - Wszystkie zapytania wymagające izolacji korzystają z tego samego zweryfikowanego kontekstu. Zapytanie po samym `id` bez zakresu dostępu jest błędem, także przy UUID.
 - Serwisy nie zwracają encji ORM do Reacta. Repozytorium mapuje dane do modeli/DTO i pobiera jawnie potrzebne relacje.
-- Constraints, FK i indeksy stanowią część implementacji. Zależności tenantów wymagają kontroli na poziomie bazy, np. złożonych kluczy zapewniających zgodność `organization_id`.
+- Constraints, FK i indeksy stanowią część implementacji. Zależności tenantów wymagają kontroli na poziomie bazy, np. złożonych kluczy zapewniających zgodność `account_id`.
 - Nie stosujemy N+1 dla list pracowników, grup i atrybutów. Plany zapytań oceniamy na reprezentatywnych danych przez `EXPLAIN`, poza produkcyjnymi żądaniami użytkowników.
 - SQL jest parametryzowany; identyfikatory i sortowanie wybierane z allowlist. Nie konkatenatujemy inputu do zapytania.
 
@@ -236,7 +233,7 @@ Typy portów należą do `core`; typowanie konkretnych rejestracji powstaje w co
 ### Granice transakcji i migracje schematu
 
 - Jedna transakcja obejmuje zmianę danych, kontrolę konfliktu i wymagany wpis audytu/outboxa.
-- Limit pracowników, zmiana właściciela i kolejność działów wymagają ochrony współbieżności. Samo `SELECT`, a następnie `INSERT` w transakcji przy domyślnej izolacji nie rozwiązuje wyścigu.
+- Nadawanie i odbieranie uprawnień (np. ochrona ostatniej osoby zarządzającej uprawnieniami), zmiana właściciela i kolejność działów wymagają ochrony współbieżności. Samo `SELECT`, a następnie `INSERT` w transakcji przy domyślnej izolacji nie rozwiązuje wyścigu.
 - Blokady pobieramy w stałej kolejności. Retry po deadlocku lub konflikcie serializacji jest ograniczony i dotyczy całej operacji, jeśli jest bezpieczna do powtórzenia.
 - SMTP i magazyn plików nie należą do transakcji PostgreSQL. Dla skutków zewnętrznych stosujemy outbox lub jawny proces kompensacji z możliwością ponowienia.
 - Dla schematu obowiązuje jeden właściciel migracji: Migrator MikroORM. Migracje i snapshot schematu znajdują się w `packages/db/src/migrations`; nie stosujemy równolegle innego narzędzia migracji ani ręcznych zmian schematu na tych samych obiektach.
@@ -307,7 +304,7 @@ Test integracyjny musi dowodzić, że właściwe polityki działają na realnej 
 
 Procedura dla operacji edycji danych pracownika:
 
-1. Sprawdź istniejący kontrakt SQL/RPC, zakres grupy, reguły planu i audit. Zapisz kryteria akceptacji i przypadki odmowy.
+1. Sprawdź istniejący kontrakt SQL/RPC, zakres grupy, wymagane uprawnienia i audit. Zapisz kryteria akceptacji i przypadki odmowy.
 2. Dodaj schemat wejścia w `core/src/validators/employees/` i wymagane DTO. Przyjmuj tylko pola edytowalne przez tę operację.
 3. Dodaj lub rozszerz przypadek użycia `EmployeeService`. Korzystaj z polityki dostępu oraz portu repozytorium, bez importu MikroORM i HTTP.
 4. Zaimplementuj port w `db/src/repositories/employees/`. Encję dodaj tylko wtedy, gdy funkcja faktycznie wymaga nowego mapowania. Zmianę DB opisz osobną, przejrzaną migracją.
@@ -369,8 +366,7 @@ packages/
         departments/
         requirements/
       policies/
-        group-access.policy.ts
-        account-plan.policy.ts
+        access.policy.ts
       services/
         employees/employee.service.ts
         groups/group.service.ts
@@ -421,8 +417,8 @@ Pozostałe domeny, np. `audit-history`, `notifications`, `accounts`, otrzymują 
 
 | Warstwa | Co sprawdzamy |
 |---|---|
-| Unit (100% pokrycia) | Stany terminów, walidacja pól, reguły planu, decyzje policy, przypadki użycia z portami testowymi, komponenty i strony |
-| Integracja DB | Constraints, RLS/granty na roli runtime, izolacja tenantów i grup, atomowość, wyścigi limitów i transferu |
+| Unit (100% pokrycia) | Stany terminów, walidacja pól, decyzje policy i uprawnień, przypadki użycia z portami testowymi, komponenty i strony |
+| Integracja DB | Constraints, RLS/granty na roli runtime, izolacja kont i grup, atomowość, wyścigi przy nadawaniu uprawnień i transferze |
 | API | Brak sesji, odmowa dostępu, walidacja, mass assignment, konflikty, ograniczona paginacja, neutralny błąd |
 | UI | Edycja, walidacja, loading/error/empty, wielokrotny submit, klawiatura i focus |
 | E2E (agent-browser) | Logowanie, grupa i pracownik, zaproszenie, viewer bez edycji, utrata dostępu po odebraniu członkostwa |
@@ -440,7 +436,7 @@ Testy na PGlite lub z symulowaną integracją nie zastępują weryfikacji rzeczy
 
 - [ ] Zmiana realizuje określone wymaganie Validuo i mieści się w zakresie zadania.
 - [ ] Kierunek `app -> db -> core`, `app -> core`, `app -> ui` jest zachowany; brak importów ORM w `core` i klientach.
-- [ ] Chroniona operacja sprawdza sesję oraz konkretne członkostwo, rolę i plan. Błąd sprawdzenia odmawia dostępu.
+- [ ] Chroniona operacja sprawdza sesję oraz konkretne uprawnienie osoby do zakresu i czynności. Błąd sprawdzenia odmawia dostępu.
 - [ ] Tenant, aktor i prawa nie pochodzą bez weryfikacji z payloadu. Jest test obcego użytkownika/grupy.
 - [ ] Schemat wejścia odrzuca niedozwolone pola. Encje i surowe błędy nie trafiają do klienta.
 - [ ] Operacja wieloetapowa ma poprawną granicę transakcji; przypadek współbieżny jest sprawdzony, jeśli dotyczy zmiany.

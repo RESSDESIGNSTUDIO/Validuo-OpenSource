@@ -3,7 +3,6 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
-  PlanLimitError,
   UnauthorizedError,
   ValidationError,
   type AppError,
@@ -77,7 +76,6 @@ describe("apiHandler", () => {
     [new ForbiddenError("Brak uprawnień."), 403],
     [new NotFoundError("Nie znaleziono."), 404],
     [new ConflictError("Konflikt."), 409],
-    [new PlanLimitError("Limit planu."), 409],
   ])("maps %s to HTTP %i", async (error, status) => {
     const response = await call(apiHandler("test.fail", () => Promise.reject(error)));
     const requestId = response.headers.get("x-request-id");

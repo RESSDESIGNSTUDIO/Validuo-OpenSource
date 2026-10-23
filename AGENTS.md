@@ -14,7 +14,9 @@ Validuo to aplikacja webowa open source (pracownicy, grupy, działy, dokumenty, 
 
 **Licencja: GNU AGPL-3.0-only** (`LICENSE`, pole `license` w każdym `package.json`). Projekt jest open source: nie dodawaj kodu ani zależności o licencji niezgodnej z AGPL-3.0 (dozwolone m.in. MIT, ISC, BSD, Apache-2.0, MPL-2.0, LGPL; zakazane: licencje „tylko niekomercyjne”, własnościowe, GPL-2.0-only). Każdy commit ma podpis DCO (`git commit -s`, linia `Signed-off-by`) — patrz `CONTRIBUTING.md`. Nie wklejaj do repozytorium sekretów, danych klientów ani kodu bez praw do dystrybucji.
 
-**Pełny standard inżynieryjny: [`.ai/specs/engineering-standards.md`](.ai/specs/engineering-standards.md)** — nazewnictwo, reguły domenowe (role, plany, limity, terminy, zaproszenia, audyt), API, transakcje, bezpieczeństwo, testy i checklista code review. Stosuj go przy każdej implementacji i każdym review; ten plik jest jego skrótem operacyjnym dla obecnego stanu repo.
+**Pełny standard inżynieryjny: [`.ai/specs/engineering-standards.md`](.ai/specs/engineering-standards.md)** — nazewnictwo, reguły domenowe (konta i uprawnienia, terminy, zaproszenia, audyt), API, transakcje, bezpieczeństwo, testy i checklista code review. Stosuj go przy każdej implementacji i każdym review; ten plik jest jego skrótem operacyjnym dla obecnego stanu repo.
+
+**Model dostępu:** brak płatności, planów, poziomów kont i limitów zasobów — każde konto ma takie same możliwości, a dostęp wynika wyłącznie z uprawnień nadawanych konkretnym osobom wewnątrz aplikacji (osoba + zakres + czynność; brak uprawnienia = odmowa). Nie dodawaj pól ani reguł typu `plan`, `tier`, `isPremium` ani limitów liczby zasobów bez specyfikacji i zgody człowieka. Szczegóły: standard, sekcja „Konta, osoby i uprawnienia”.
 
 ## Stos technologiczny
 
@@ -108,9 +110,9 @@ ui, core ──► (brak pakietów workspace)
 ## API i błędy
 
 - Route Handlers owijamy `apiHandler(operation, handler)` z `app/src/server/http/api-handler.ts`: scope DI na żądanie, `requestId` (nagłówek `x-request-id`), `cache-control: no-store`, odpowiedź `ApiResult<T>` (`app/src/lib/api/api-result.ts`) i jedno mapowanie błędów.
-- Błędy domenowe: `AppError` z `@validuo/core/errors` (`UnauthorizedError` 401, `ForbiddenError` 403, `NotFoundError` 404, `ValidationError` 422 z `fieldErrors`, `ConflictError` 409, `PlanLimitError` 409) — nie znają HTTP. Błędy transportu (400, 429, 503…): `HttpError` z `app/src/server/http/http-error.ts`. Wszystko inne → 500 z neutralnym komunikatem; szczegóły tylko w logu.
+- Błędy domenowe: `AppError` z `@validuo/core/errors` (`UnauthorizedError` 401, `ForbiddenError` 403, `NotFoundError` 404, `ValidationError` 422 z `fieldErrors`, `ConflictError` 409) — nie znają HTTP. Błędy transportu (400, 429, 503…): `HttpError` z `app/src/server/http/http-error.ts`. Wszystko inne → 500 z neutralnym komunikatem; szczegóły tylko w logu.
 - Logi: `logger` z DI (JSON, jedna linia); w handlerze `context.logger` ma już `requestId` i `operation`. Nigdy JWT, linków zaproszeń, signed URLs, haseł ani treści dokumentów. Bez pustego `catch`.
-- Wejście waliduj schematami Zod (body, params, query, limity rozmiaru i paginacji); nigdy `em.assign(entity, rawBody)`. Aktor, plan, rola i tenant pochodzą z zaufanej warstwy, nie z payloadu.
+- Wejście waliduj schematami Zod (body, params, query, limity rozmiaru i paginacji); nigdy `em.assign(entity, rawBody)`. Aktor, jego uprawnienia i konto (tenant) pochodzą z zaufanej warstwy, nie z payloadu.
 - Route Handler i Server Action wywołują ten sam przypadek użycia; każda chroniona operacja sama weryfikuje sesję i uprawnienie (layout/redirect/ukryty przycisk to nie autoryzacja).
 
 ## UI: frontend (Tailwind) i backend (shadcn/ui)
@@ -207,7 +209,7 @@ Ten projekt wykorzystuje katalog `.ai/` jako jedyne źródło prawdy dla specyfi
 
 ### Weryfikacja
 - Nie uznawaj zadania za skończone bez weryfikacji. Minimum to `npm run lint`, `npm run format:check`, `npm run typecheck` (`tsc --noEmit` w każdym pakiecie — w root nie ma `tsconfig.json`, więc samo `npx tsc --noEmit` nic nie sprawdzi) i `npm run test:unit` (100% pokrycia); przy zmianach w routingu, konfiguracji, zależnościach lub buildzie także `npm run build`, przy zmianach w `db`/SQL — `npm run test:integration`, a przy zmianach UI lub zachowania aplikacji — `npm run test:e2e` lub sprawdzenie przez `app:ephemeral` + agent-browser. Te same kontrole uruchamia CI dla każdego PR.
-- Testy proporcjonalne do ryzyka (rozdz. 10 standardu): reguły i przypadki użycia — unit z portami testowymi; izolacja tenantów/grup, RLS na roli runtime, atomowość i wyścigi — integracja na PostgreSQL (dwie niezależne transakcje dla współbieżności). Raport podaje środowisko i rzeczywisty wynik — nie deklaruj wyniku testu, którego nie uruchomiono.
+- Testy proporcjonalne do ryzyka (rozdz. 10 standardu): reguły i przypadki użycia — unit z portami testowymi; izolacja kont/grup, RLS na roli runtime, atomowość i wyścigi — integracja na PostgreSQL (dwie niezależne transakcje dla współbieżności). Raport podaje środowisko i rzeczywisty wynik — nie deklaruj wyniku testu, którego nie uruchomiono.
 - Przed oddaniem przejdź checklistę review z rozdz. 10 standardu.
 - Zmiany w `packages/db` (encje, migracje, konfiguracja) weryfikuj na osobnej, tymczasowej bazie, nigdy na współdzielonej.
 - Zmiany UI sprawdź w działającej aplikacji (`npm run dev`), testując główną ścieżkę i przypadki brzegowe. Jeśli nie da się tego sprawdzić, napisz to wprost.

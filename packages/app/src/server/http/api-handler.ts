@@ -25,7 +25,6 @@ const appErrorStatus: Record<AppErrorCode, number> = {
   NotFound: 404,
   Validation: 422,
   Conflict: 409,
-  PlanLimit: 409,
 };
 
 const UNEXPECTED_ERROR_MESSAGE = "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.";

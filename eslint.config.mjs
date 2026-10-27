@@ -106,6 +106,7 @@ const eslintConfig = defineConfig([
     "**/dist/**",
     "**/next-env.d.ts",
     "packages/db/src/migrations/**",
+    ".agents/**",
   ]),
 ]);
 

@@ -9,5 +9,9 @@ packages/db/src/migrations/
 packages/ui/src/components/
 packages/ui/src/styles/globals.css
 
+# Vendored agent skills (open-mercato/skills, MIT) keep their upstream formatting.
+.agents/
+skills-lock.json
+
 # Markdown is prose (the nextjs-agent-rules block in AGENTS.md must stay byte-for-byte).
 *.md

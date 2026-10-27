@@ -67,8 +67,8 @@ Pliki wyłącznie z typami i barrel re-eksporty dają w v8 0/0 i liczą się jak
 ### 2026-10-22 — `next build` restartuje worker podglądu `next dev`
 Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` — to nie osierocony proces testowy. Zanim cokolwiek zabijesz, sprawdź PPID (podgląd: rodzic `next dev`) i `environ` (`NODE_ENV=development`, współdzielone `DATABASE_URL`).
 
-### 2026-10-22 — Ochrona gałęzi niedostępna w prywatnym repo na darmowym planie
-`branch protection` i `rulesets` zwracają 403 („Upgrade to GitHub Pro or make this repository public”). Wymóg zielonych checków przed merge'em nie jest więc egzekwowany technicznie — działa z konwencji (`AGENTS.md`, sekcja „Git, pull requesty i merge”). Gdy repo przejdzie na plan Pro lub stanie się publiczne, włącz ochronę `main` z wymaganymi checkami: Lint, Unit tests (100% coverage), Build, Integration tests.
+### 2026-10-22 — Ochrona gałęzi wymaga publicznego repo lub planu Pro
+W prywatnym repo na planie Free `branch protection` i `rulesets` zwracały 403. Po upublicznieniu (2026-10-27) ochrona `main` została ustawiona przez `gh api -X PUT repos/<repo>/branches/main/protection`: wymagane checki Lint, Unit tests (100% coverage), Build, Integration tests, `strict`, `enforce_admins`, historia liniowa, bez force-pusha i usunięć, bez wymaganych approvali (autor nie może zatwierdzić własnego PR). Zmiana nazwy joba w `ci.yml` wymaga aktualizacji listy wymaganych checków.
 
 ### 2026-10-23 — Zawieszony krok CI blokuje PR na godziny
 Krok `agent-browser install --with-deps` (apt + pobranie Chrome) zawisł na ponad 18 minut; bez `timeout-minutes` job trwałby do domyślnego limitu 6 godzin. Anulowany przebieg trzeba najpierw dokończyć (`gh run cancel`, poczekać na `completed`), dopiero potem `gh run rerun --failed` zadziała. Wniosek: każdy job i krok ma limit czasu, kroki sieciowe są ponawiane (`.github/scripts/retry.sh`), a `ci-rerun.yml` wznawia przebieg po timeoucie. Testów nie ponawiamy.

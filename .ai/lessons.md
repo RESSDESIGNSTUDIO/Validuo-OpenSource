@@ -14,9 +14,9 @@ Co się stało / co ustalono. Dlaczego to ważne. Co robić inaczej następnym r
 -->
 
 ### 2026-10-22 — Eksperymenty z ORM tylko na osobnej bazie
-Subagent badający MikroORM 7 miał w skrypcie `clientUrl: process.env.DATABASE_URL ?? '<scratch>'`; zmienna była ustawiona w sandboxie, więc `schema.update()` i migracje poszły na współdzieloną bazę `open-mercato` (utworzył `users`, `counter`, `mikro_orm_migrations`). W MikroORM 7 `schema.update()` domyślnie ma `dropTables: true` — usuwa tabele, których nie zna. Tym razem baza była pusta (potwierdzone analizą OID w `pg_class`), ale mogło dojść do utraty danych. Następnym razem: eksperymenty na własnej instancji (`initdb` + `pg_ctl` w `/tmp`, inny port), w skryptach testowych nigdy fallbacku na `process.env.DATABASE_URL`, a zlecając subagentowi pracę z bazą — jawnie zabronić używania `DATABASE_URL`.
+Subagent badający MikroORM 7 miał w skrypcie `clientUrl: process.env.DATABASE_URL ?? '<scratch>'`; zmienna była ustawiona w środowisku agenta, więc `schema.update()` i migracje poszły na współdzieloną bazę środowiska (utworzył `users`, `counter`, `mikro_orm_migrations`). W MikroORM 7 `schema.update()` domyślnie ma `dropTables: true` — usuwa tabele, których nie zna. Tym razem baza była pusta (potwierdzone analizą OID w `pg_class`), ale mogło dojść do utraty danych. Następnym razem: eksperymenty na własnej instancji (`initdb` + `pg_ctl` w `/tmp`, inny port), w skryptach testowych nigdy fallbacku na `process.env.DATABASE_URL`, a zlecając subagentowi pracę z bazą — jawnie zabronić używania `DATABASE_URL`.
 
-### 2026-10-22 — `NODE_ENV=development` w sandboxie psuje `next build`
+### 2026-10-22 — `NODE_ENV=development` w środowisku agenta psuje `next build`
 Środowisko ma globalnie `NODE_ENV=development`; `next build` kończy się wtedy błędem prerenderingu `/_global-error` („Cannot read properties of null (reading 'useContext')”) i lawiną ostrzeżeń o `key`. To nie jest problem z wieloma kopiami Reacta. Skrypty `build`/`start` w `packages/app` wymuszają `NODE_ENV=production`.
 
 ### 2026-10-22 — Przenoszenie katalogów na overlayfs
@@ -32,7 +32,7 @@ Synchroniczny konstruktor (używany w DI, bo rejestracja Awilix jest synchronicz
 Po aktualizacji Next (16.3.4 → 16.4.2) treść bloku w `AGENTS.md` przestała się zgadzać z generatorem (`hasCurrentAgentRules` = false) i `next dev` przepisałby plik. Po podbiciu Next zsynchronizuj blok w `AGENTS.md` i `packages/app/AGENTS.md` (sprawdzenie: `hasCurrentAgentRules` z `next/dist/server/lib/generate-agent-files.js`).
 
 ### 2026-10-22 — `pkill -f` potrafi zabić własną powłokę
-`pkill -f "next start --port 3124"` dopasował też powłokę, która go uruchomiła (wzorzec był w jej linii poleceń). Zamykaj procesy po PID, sprawdziwszy wcześniej ich `cwd`/`environ`, zwłaszcza że w sandboxie działa też podgląd (`workspace-preview`), którego nie wolno ubić.
+`pkill -f "next start --port <port>"` dopasował też powłokę, która go uruchomiła (wzorzec był w jej linii poleceń). Zamykaj procesy po PID, sprawdziwszy wcześniej ich `cwd`/`environ`, zwłaszcza że w środowisku agenta działa też podgląd (podglądu środowiska), którego nie wolno ubić.
 
 ### 2026-10-22 — Wspólny loader `@next/env` przez `createRequire`
 Rozwiązanie problemu z wpisu o imporcie CJS: `@validuo/core/config/load-env` ładuje `@next/env` przez `createRequire(import.meta.url)` i nie ma importów względnych. Ten sam moduł działa w `next.config.ts` (kompilowany do CJS), w `tsx` (CLI MikroORM, skrypty) i w natywnym Node 24. Nie wracaj do dwóch osobnych wywołań `loadEnvConfig` ani do zgadywania stylu importu.
@@ -61,8 +61,8 @@ Standard (`engineering-standards.md`) wskazywał migracje Supabase, więc zamien
 ### 2026-10-22 — Testy jednostkowe stron i pokrycie 100% w Vitest 5
 Pliki wyłącznie z typami i barrel re-eksporty dają w v8 0/0 i liczą się jako 100% — nie wykluczaj ich. Async Server Components testuj jako `renderToStaticMarkup(await Page())`, mockując `next/server` (`connection`), `@/server/container` i `@validuo/db`; importy CSS w layoutach Vitest zamienia na puste moduły. `@next/env` ładowany przez `createRequire` nie da się podmienić `vi.mock` i cache'uje wynik w procesie — testuj go na prawdziwym katalogu tymczasowym. `coverage.enabled` nie ustawiaj w konfiguracji (próg 100% objąłby integrację i E2E) — tylko `--coverage` w `test:unit`.
 
-### 2026-10-22 — testcontainers i agent-browser w sandboxie
-Sandbox nie ma Dockera (testcontainers: „Could not find a working container runtime strategy”) ani bibliotek Chromium (agent-browser: „Chrome not found”/brak `libnss3`). Lokalnie integrację i E2E uruchamiaj z `TEST_DATABASE_URL` (strażnik `requireTestDatabaseUrl`); scenariusze przeglądarkowe weryfikuje dopiero CI. `agent-browser` 0.39 ma binarkę w paczce (bez `postinstall`), odpowiada `{"success":…,"data"|"error"}` przy `--json`; na Ubuntu 24.04 w CI Chrome potrzebuje `sysctl kernel.apparmor_restrict_unprivileged_userns=0` zamiast `--no-sandbox`.
+### 2026-10-22 — testcontainers i agent-browser w środowisku agenta
+Środowisko agenta nie ma Dockera (testcontainers: „Could not find a working container runtime strategy”) ani bibliotek Chromium (agent-browser: „Chrome not found”/brak `libnss3`). Lokalnie integrację i E2E uruchamiaj z `TEST_DATABASE_URL` (strażnik `requireTestDatabaseUrl`); scenariusze przeglądarkowe weryfikuje dopiero CI. `agent-browser` 0.39 ma binarkę w paczce (bez `postinstall`), odpowiada `{"success":…,"data"|"error"}` przy `--json`; na Ubuntu 24.04 w CI Chrome potrzebuje `sysctl kernel.apparmor_restrict_unprivileged_userns=0` zamiast `--no-sandbox`.
 
 ### 2026-10-22 — `next build` restartuje worker podglądu `next dev`
 Po `npm run build` podgląd `next dev` (port 3000) uruchamia nowy `next-server` — to nie osierocony proces testowy. Zanim cokolwiek zabijesz, sprawdź PPID (podgląd: rodzic `next dev`) i `environ` (`NODE_ENV=development`, współdzielone `DATABASE_URL`).

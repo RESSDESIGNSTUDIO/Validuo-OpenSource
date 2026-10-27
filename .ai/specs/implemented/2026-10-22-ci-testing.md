@@ -8,7 +8,7 @@ Każdy pull request do `main` przechodzi automatyczne kontrole: build, lint (z t
 
 - Jest Vitest (projekty `unit`, `integration`), integracja wymaga dziś `TEST_DATABASE_URL`, CI używa usługi `postgres:17`.
 - Standard (rozdz. 10) przewidywał Playwright dla scenariuszy przeglądarkowych — użytkownik wybrał `agent-browser` (CLI do automatyzacji przeglądarki dla agentów AI). Standard i `AGENTS.md` zostaną zaktualizowane.
-- Sandbox nie ma Dockera ani bibliotek Chromium: testcontainers i agent-browser weryfikujemy w GitHub Actions na PR; lokalnie integracja działa przez `TEST_DATABASE_URL` (opt-in, strzeżone).
+- Środowisko agenta nie ma Dockera ani bibliotek Chromium: testcontainers i agent-browser weryfikujemy w GitHub Actions na PR; lokalnie integracja działa przez `TEST_DATABASE_URL` (opt-in, strzeżone).
 
 ## Zakres
 

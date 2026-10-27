@@ -5,7 +5,7 @@ Polecenie użytkownika: CI dla każdego PR (build, lint, testy jednostkowe, inte
 
 ## Kroki i decyzje
 - Najpierw commit dotychczasowej pracy (standard bez Supabase) na nowej gałęzi `feat/engineering-standards` — drugi commit zawiera wyłącznie CI i testy.
-- Rozpoznanie: brak Dockera i Chromium w sandboxie; `agent-browser` 0.39.2 ma binarkę w paczce i tryb `--json`; `gh` zalogowany (`repo`, `workflow`).
+- Rozpoznanie: brak Dockera i Chromium w środowisku agenta; `agent-browser` 0.39.2 ma binarkę w paczce i tryb `--json`; `gh` zalogowany (`repo`, `workflow`).
 - Niezależny przegląd planu (subagent) — przyjęte poprawki opisane w specyfikacji.
 - Vitest: projekty `unit` (pokrycie v8, próg 100% dla `packages/*/src`), `integration` (global setup: testcontainers `postgres:17` + migracje MikroORM; `TEST_DATABASE_URL` jako strzeżona alternatywa bez Dockera), `e2e` (baza + `next start` + agent-browser).
 - Testy jednostkowe: 73 testy w 18 plikach — core, db (fałszywe `orm`, leniwy ORM bez połączenia, konfiguracja CLI), app (strony i layouty przez `renderToStaticMarkup`, route handler, instrumentation, composition root, `apiHandler`, logger), ui (prymitywy shadcn). Refaktory pod testowalność: `createMigrationOrmConfig`, `loadRootEnv(dir)`, usunięta martwa gałąź w `parseServerEnv`.

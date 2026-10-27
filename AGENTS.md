@@ -162,7 +162,7 @@ ui, core ──► (brak pakietów workspace)
 
 ## Git, pull requesty i merge
 
-- **Nikt nie pushuje bezpośrednio do `main`** (dotyczy też agentów AI). Każda zmiana idzie przez gałąź i pull request. GitHub nie pozwala wymusić ochrony gałęzi w tym planie repozytorium, więc zasada obowiązuje z konwencji — nie obchodź jej.
+- **Nikt nie pushuje bezpośrednio do `main`** (dotyczy też agentów AI). Każda zmiana idzie przez gałąź i pull request. Ochrona gałęzi `main` w GitHubie to egzekwuje: wymagane cztery checki i aktualna gałąź, historia liniowa, zakaz force-pusha i usuwania, rozstrzygnięte dyskusje; dotyczy także administratorów. Nie obchodź jej.
 - **Nazwy gałęzi:** `<typ>/<krótki-opis>`, typ: `feat`, `fix`, `refactor`, `docs`, `ci`, `test`, `chore` (np. `feat/employee-groups`). Gałąź powstaje od aktualnego `main`.
 - **Commity i tytuł PR:** styl Conventional Commits (`feat:`, `fix:`, `docs:`, `ci:`…), opis po polsku. Jeden PR = jeden zrozumiały cel, bez przypadkowych rename i aktualizacji zależności; powiąż go ze specyfikacją z `.ai/specs/`.
 - **Opis PR** wypełnia szablon `.github/pull_request_template.md`: Cel, Zmiany, Weryfikacja (rzeczywiste wyniki), checklista review z rozdz. 10 standardu, Ograniczenia.

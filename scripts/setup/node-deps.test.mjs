@@ -17,6 +17,11 @@ describe("npmCommand", () => {
     expect(npmCommand({ npm_execpath: "C:\\npm\\npm-cli.cjs" }, "win32", "node.exe").shell).toBe(false);
   });
 
+  it("ignores another package manager's script (yarn, pnpm) — this repo is npm-only", () => {
+    expect(npmCommand({ npm_execpath: "/x/pnpm.cjs" }, "linux", "node").command).toBe("npm");
+    expect(npmCommand({ npm_execpath: "/x/yarn.js" }, "linux", "node").command).toBe("npm");
+  });
+
   it("falls back to npm when npm_execpath is missing or is a binary", () => {
     expect(npmCommand({}, "linux", "node")).toEqual({ command: "npm", prefixArgs: [], shell: false });
     expect(npmCommand({ npm_execpath: "/usr/bin/npm" }, "darwin", "node").command).toBe("npm");
@@ -59,6 +64,21 @@ describe("createNodeDeps (real filesystem)", () => {
     fs.writeFileSync(path.join(root, "target"), "KEEP=1\n");
     expect(() => deps.createFrom("source", "target")).toThrow();
     expect(fs.readFileSync(path.join(root, "target"), "utf8")).toBe("KEEP=1\n");
+  });
+
+  it("warns instead of failing when permissions cannot be restricted", () => {
+    fs.writeFileSync(path.join(root, "source"), "A=1\n");
+    const log = vi.fn();
+    const failingChmod = {
+      ...fs,
+      chmodSync: () => {
+        throw new Error("EPERM");
+      },
+    };
+    const deps = createNodeDeps({ rootDir: root, fs: failingChmod, log });
+    expect(() => deps.createFrom("source", "target")).not.toThrow();
+    expect(fs.readFileSync(path.join(root, "target"), "utf8")).toBe("A=1\n");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("0600"));
   });
 
   it("logs to the console by default and passes through environment and Node version", () => {

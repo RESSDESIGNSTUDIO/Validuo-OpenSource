@@ -2,11 +2,11 @@ import { checkRequirements } from "./requirements.mjs";
 import { needsInstall } from "./install.mjs";
 import {
   ENV_EXAMPLE_FILE,
-  ENV_FILES,
   describeDatabaseTarget,
+  envFilesFor,
   isExampleDatabaseUrl,
   parseDotenvValue,
-  resolveDatabaseUrl,
+  resolveEnvValue,
 } from "./env-file.mjs";
 
 const LOCKFILE = "package-lock.json";
@@ -64,7 +64,8 @@ export async function runSetup(deps) {
       step(skipped, "pominięto", "zależności są aktualne");
     }
 
-    if (ENV_FILES.some((file) => deps.exists(file))) {
+    const envFiles = envFilesFor(deps.env.NODE_ENV);
+    if (envFiles.some((file) => deps.exists(file))) {
       step(skipped, "pominięto", "plik .env już istnieje (nie jest nadpisywany)");
     } else if (!deps.exists(ENV_EXAMPLE_FILE)) {
       return fail(`Brakuje pliku ${ENV_EXAMPLE_FILE} — nie można utworzyć .env.`);
@@ -73,27 +74,32 @@ export async function runSetup(deps) {
       step(done, "wykonano", `utworzono .env z ${ENV_EXAMPLE_FILE}`);
     }
 
-    const fileContents = ENV_FILES.map((file) => (deps.exists(file) ? deps.readText(file) : null));
-    const databaseUrl = resolveDatabaseUrl({ env: deps.env, fileContents });
-    const exampleUrl = deps.exists(ENV_EXAMPLE_FILE)
-      ? parseDotenvValue(deps.readText(ENV_EXAMPLE_FILE), "DATABASE_URL")
-      : undefined;
-    if (databaseUrl === undefined || isExampleDatabaseUrl(databaseUrl, exampleUrl)) {
+    const fileContents = envFiles.map((file) => (deps.exists(file) ? deps.readText(file) : null));
+    const exampleText = deps.exists(ENV_EXAMPLE_FILE) ? deps.readText(ENV_EXAMPLE_FILE) : "";
+    const lookup = (key) => resolveEnvValue({ env: deps.env, fileContents, key });
+    const runtimeUrl = lookup("DATABASE_URL");
+    // `db:migrate` connects with MIGRATION_DATABASE_URL and falls back to DATABASE_URL (parseServerEnv).
+    const migrationUrl = lookup("MIGRATION_DATABASE_URL") || runtimeUrl;
+    const isUnset = (value) => value === undefined || value === "";
+    const needsEdit = (key, value) => isUnset(value) || isExampleDatabaseUrl(value, parseDotenvValue(exampleText, key));
+    // MIGRATION_DATABASE_URL is optional: an empty one means "not set", so only the effective
+    // migration URL is checked for example values.
+    if (needsEdit("DATABASE_URL", runtimeUrl) || needsEdit("DATABASE_URL", migrationUrl)) {
       return fail(
-        "Uzupełnij DATABASE_URL w .env (adres PostgreSQL 17 z prawdziwymi danymi dostępu), potem uruchom npm run setup ponownie.",
+        "Uzupełnij DATABASE_URL (i ewentualnie MIGRATION_DATABASE_URL) w .env — adres PostgreSQL 17 z prawdziwymi danymi dostępu — potem uruchom npm run setup ponownie.",
       );
     }
 
-    const target = describeDatabaseTarget(databaseUrl);
+    const target = describeDatabaseTarget(migrationUrl);
     if (target !== null) {
-      deps.log(`Baza danych: ${target}`);
+      deps.log(`Baza, na której zostaną zastosowane migracje: ${target}`);
     }
     if ((await deps.runNpm(["run", "db:migrate"])) !== 0) {
       return fail(
         "Nie udało się zastosować migracji — sprawdź, czy PostgreSQL działa oraz czy DATABASE_URL i uprawnienia konta są poprawne.",
       );
     }
-    step(done, "wykonano", "migracje zastosowane (npm run db:migrate)");
+    step(done, "wykonano", "migracje aktualne (npm run db:migrate)");
   } catch (error) {
     return fail(`Nieoczekiwany błąd: ${error instanceof Error ? error.message : String(error)}`);
   }

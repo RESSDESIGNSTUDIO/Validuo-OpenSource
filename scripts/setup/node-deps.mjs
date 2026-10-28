@@ -4,7 +4,8 @@ import path from "node:path";
 
 /**
  * How to start npm without a shell where possible. `npm run` exports `npm_execpath` (npm-cli.js),
- * which Node runs directly; otherwise fall back to `npm` (`npm.cmd` needs a shell on Windows).
+ * which Node runs directly; any other value (yarn, pnpm) is ignored — this repo is npm-only — and
+ * falls back to `npm` (`npm.cmd` needs a shell on Windows).
  * Arguments are always fixed strings from the installer, never values read from files.
  * @param {Record<string, string | undefined>} env
  * @param {string} platform
@@ -12,7 +13,7 @@ import path from "node:path";
  */
 export function npmCommand(env, platform, execPath) {
   const npmExecPath = env.npm_execpath;
-  if (npmExecPath && /\.[cm]?js$/.test(npmExecPath)) {
+  if (npmExecPath && /(^|[\\/])npm-cli\.[cm]?js$/.test(npmExecPath)) {
     return { command: execPath, prefixArgs: [npmExecPath], shell: false };
   }
   return { command: platform === "win32" ? "npm.cmd" : "npm", prefixArgs: [], shell: platform === "win32" };
@@ -64,8 +65,12 @@ export function createNodeDeps({
     createFrom: (from, to) => {
       // COPYFILE_EXCL: never overwrite an existing file, even if one appears between check and copy.
       fs.copyFileSync(resolve(from), resolve(to), fs.constants.COPYFILE_EXCL);
-      // Best effort: the mode is ignored where the platform does not support it (Windows).
-      fs.chmodSync(resolve(to), 0o600);
+      try {
+        fs.chmodSync(resolve(to), 0o600);
+      } catch {
+        // Best effort (Windows, some mounts): the file exists already, so report instead of failing.
+        log("[ostrzeżenie] nie udało się ustawić praw 0600 dla .env — ogranicz do niego dostęp ręcznie.");
+      }
     },
     getNpmVersion: () => {
       const result = spawnSync(npm.command, [...npm.prefixArgs, "--version"], {

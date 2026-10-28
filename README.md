@@ -116,13 +116,13 @@ Wymagania: Node.js 24, npm 11, PostgreSQL 17 (istniejący serwer — instalator 
 npm run setup
 ```
 
-Jedno polecenie wykonuje kroki z sekcji „Ręcznie” poniżej i można je bezpiecznie uruchamiać ponownie — pomija to, co już zrobione:
+Jedno polecenie wykonuje kroki z sekcji „Ręcznie” poniżej i można je bezpiecznie uruchamiać ponownie: instalacja zależności i tworzenie `.env` są pomijane, gdy już wykonane, a migracje (`db:migrate`) są z natury idempotentne i uruchamiane za każdym razem:
 
 1. sprawdza wersje Node.js i npm (przed jakąkolwiek zmianą),
 2. `npm install` — pomijane, gdy `node_modules` jest aktualne względem `package-lock.json`,
-3. tworzy `.env` z `.env.example` (prawa `0600`) — tylko gdy nie istnieje żaden plik `.env*` czytany przez aplikację (`.env`, `.env.local`, `.env.development`, `.env.development.local`); istniejących plików nigdy nie nadpisuje,
-4. zatrzymuje się z kodem `1`, gdy `DATABASE_URL` nie jest ustawiony albo ma przykładową wartość (hasło `change-me`) — przy pierwszym uruchomieniu tak będzie: uzupełnij `DATABASE_URL` w `.env` i uruchom `npm run setup` ponownie,
-5. wypisuje host i nazwę bazy (bez hasła) i stosuje migracje (`npm run db:migrate`) — **na bazie wskazanej przez `DATABASE_URL`/`MIGRATION_DATABASE_URL`, także gdy jest ustawiona w powłoce, a nie w `.env`**; sprawdź, że to baza lokalna,
+3. tworzy `.env` z `.env.example` (prawa `0600`) — tylko gdy nie istnieje żaden plik `.env*` czytany przez aplikację w bieżącym trybie (`NODE_ENV`; domyślnie `.env`, `.env.local`, `.env.development`, `.env.development.local`); istniejących plików nigdy nie nadpisuje,
+4. zatrzymuje się z kodem `1`, gdy `DATABASE_URL` (lub ustawiony `MIGRATION_DATABASE_URL`) nie jest ustawiony, jest pusty albo ma przykładową wartość (hasło `change-me`) — przy pierwszym uruchomieniu tak będzie: uzupełnij `DATABASE_URL` w `.env` i uruchom `npm run setup` ponownie,
+5. wypisuje host i nazwę bazy, na której pójdą migracje (bez hasła), i stosuje je (`npm run db:migrate`) — **na bazie wskazanej przez `MIGRATION_DATABASE_URL`, a gdy go brak, przez `DATABASE_URL`, także gdy zmienna jest ustawiona w powłoce, a nie w `.env`**; sprawdź, że to baza lokalna,
 6. wypisuje następny krok: `npm run dev`.
 
 Kod wyjścia `0` oznacza gotowość (także przy ponownym uruchomieniu bez zmian), `1` — brakujące wymaganie, konfigurację do uzupełnienia albo błąd kroku. Własne komunikaty skryptu nie zawierają hasła z `DATABASE_URL`.

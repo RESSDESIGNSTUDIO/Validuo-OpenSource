@@ -1,5 +1,6 @@
-// The installer runs before `npm install`, so it uses only Node built-ins and syntax that old Node
-// versions can still parse — that is how it can report an unsupported Node instead of crashing.
+// The installer runs before `npm install`, so it uses only Node built-ins and syntax that Node 14+
+// can parse — that is how it can report an unsupported Node instead of crashing. Older Node
+// versions cannot load `.mjs` reliably; the README states Node 24 as the requirement.
 
 export const REQUIRED_NODE_MAJOR = 24;
 export const REQUIRED_NPM_MAJOR = 11;

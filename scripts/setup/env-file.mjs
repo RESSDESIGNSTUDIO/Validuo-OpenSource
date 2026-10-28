@@ -1,12 +1,22 @@
-// Files `loadRootEnv()` reads in development, highest precedence first (Next.js rules). The
-// installer only needs to know whether `DATABASE_URL` is set somewhere and not an example value;
-// real validation stays in `parseServerEnv()` (the migration step).
-export const ENV_FILES = [".env.development.local", ".env.local", ".env.development", ".env"];
+// Files `loadRootEnv()` reads, highest precedence first (Next.js rules, chosen by NODE_ENV). The
+// installer only needs to know whether the database URLs are set and not example values; real
+// validation stays in `parseServerEnv()` (the migration step).
 export const ENV_EXAMPLE_FILE = ".env.example";
+const ENV_FILES_BY_MODE = {
+  production: [".env.production.local", ".env.local", ".env.production", ".env"],
+  test: [".env.test.local", ".env.test", ".env"],
+  development: [".env.development.local", ".env.local", ".env.development", ".env"],
+};
+
+/** @param {string | undefined} nodeEnv */
+export function envFilesFor(nodeEnv) {
+  return nodeEnv === "production" || nodeEnv === "test" ? ENV_FILES_BY_MODE[nodeEnv] : ENV_FILES_BY_MODE.development;
+}
 const EXAMPLE_PASSWORD = "change-me";
 
 /**
- * Reads `KEY` from dotenv text. Empty values count as "not set", like in `parseServerEnv()`.
+ * Reads `KEY` from dotenv text (single-line values only; no `$VAR` expansion). A key set to an
+ * empty value is returned as "" — like @next/env, it still shadows lower-precedence files.
  * @param {string} content
  * @param {string} key
  * @returns {string | undefined}
@@ -19,13 +29,13 @@ export function parseDotenvValue(content, key) {
       value = unquote(match[2]);
     }
   }
-  return value === "" ? undefined : value;
+  return value;
 }
 
 /** @param {string} raw */
 function unquote(raw) {
   const trimmed = raw.trim();
-  const quoted = /^(["'])(.*)\1/.exec(trimmed);
+  const quoted = /^(["'`])(.*)\1/.exec(trimmed);
   if (quoted) {
     return quoted[2];
   }
@@ -33,17 +43,18 @@ function unquote(raw) {
 }
 
 /**
- * First `DATABASE_URL` by precedence: shell environment, then env files. Never logged.
- * @param {{ env: Record<string, string | undefined>; fileContents: Array<string | null> }} sources
- *   `fileContents` follows `ENV_FILES` order, `null` for a missing file.
+ * First definition of `key` by precedence: shell environment, then env files (a defined but empty
+ * value counts as defined, as in @next/env). Never logged.
+ * @param {{ env: Record<string, string | undefined>; fileContents: Array<string | null>; key: string }} sources
+ *   `fileContents` follows `envFilesFor()` order, `null` for a missing file.
  * @returns {string | undefined}
  */
-export function resolveDatabaseUrl({ env, fileContents }) {
-  if (env.DATABASE_URL) {
-    return env.DATABASE_URL;
+export function resolveEnvValue({ env, fileContents, key }) {
+  if (env[key] !== undefined) {
+    return env[key];
   }
   for (const content of fileContents) {
-    const value = content === null ? undefined : parseDotenvValue(content, "DATABASE_URL");
+    const value = content === null ? undefined : parseDotenvValue(content, key);
     if (value !== undefined) {
       return value;
     }
@@ -74,6 +85,10 @@ export function isExampleDatabaseUrl(value, exampleValue) {
  * @returns {string | null}
  */
 export function describeDatabaseTarget(value) {
+  if (value.includes("$")) {
+    // Contains a variable reference that @next/env expands and we do not: do not print a wrong target.
+    return null;
+  }
   try {
     const url = new URL(value);
     const port = url.port ? `:${url.port}` : "";

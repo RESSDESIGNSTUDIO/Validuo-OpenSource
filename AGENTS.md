@@ -147,7 +147,7 @@ ui, core ──► (brak pakietów workspace)
 
 | Polecenie | Opis |
 | --- | --- |
-| `npm run setup` | Instalator lokalny (`scripts/setup.mjs`): wymagania, `npm install`, `.env`, `db:migrate` — idempotentny; zwykły ESM bez zależności, bo działa przed `npm install`. Migruje bazę z `DATABASE_URL` (także z powłoki). |
+| `npm run setup` | Instalator lokalny (`scripts/setup.mjs`): wymagania, `npm install`, `.env`, `db:migrate` — idempotentny; zwykły ESM bez zależności, bo działa przed `npm install`. Migruje bazę z `MIGRATION_DATABASE_URL` lub `DATABASE_URL` (także z powłoki). |
 | `npm run dev` | Serwer deweloperski Next.js (`packages/app`). Argumenty przekazuj po `--`. |
 | `npm run build` / `npm start` | Build i start produkcyjny (wymuszają `NODE_ENV=production`). |
 | `npm run lint` | ESLint dla całego repo. |

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { describeDatabaseTarget, isExampleDatabaseUrl, parseDotenvValue, resolveDatabaseUrl } from "./env-file.mjs";
+import {
+  describeDatabaseTarget,
+  envFilesFor,
+  isExampleDatabaseUrl,
+  parseDotenvValue,
+  resolveEnvValue,
+} from "./env-file.mjs";
 
 describe("parseDotenvValue", () => {
   it("reads plain, exported and spaced assignments", () => {
@@ -24,31 +30,55 @@ describe("parseDotenvValue", () => {
     expect(parseDotenvValue(content, "DATABASE_URL")).toBe("postgres://last");
   });
 
-  it("treats empty and missing values as not set", () => {
-    expect(parseDotenvValue("DATABASE_URL=", "DATABASE_URL")).toBeUndefined();
-    expect(parseDotenvValue('DATABASE_URL=""', "DATABASE_URL")).toBeUndefined();
+  it("reads backtick-quoted values", () => {
+    expect(parseDotenvValue("DATABASE_URL=`postgres://b`", "DATABASE_URL")).toBe("postgres://b");
+  });
+
+  it("returns an empty string for a key set to nothing and undefined for a missing key", () => {
+    expect(parseDotenvValue("DATABASE_URL=", "DATABASE_URL")).toBe("");
+    expect(parseDotenvValue('DATABASE_URL=""', "DATABASE_URL")).toBe("");
     expect(parseDotenvValue("OTHER=1", "DATABASE_URL")).toBeUndefined();
   });
 });
 
-describe("resolveDatabaseUrl", () => {
+describe("envFilesFor", () => {
+  it("follows the Next.js file precedence for each mode", () => {
+    expect(envFilesFor(undefined)).toEqual([".env.development.local", ".env.local", ".env.development", ".env"]);
+    expect(envFilesFor("development")).toEqual(envFilesFor(undefined));
+    expect(envFilesFor("production")).toEqual([".env.production.local", ".env.local", ".env.production", ".env"]);
+    expect(envFilesFor("test")).toEqual([".env.test.local", ".env.test", ".env"]);
+  });
+});
+
+describe("resolveEnvValue", () => {
+  const key = "DATABASE_URL";
+
   it("prefers the shell environment", () => {
     expect(
-      resolveDatabaseUrl({ env: { DATABASE_URL: "postgres://env" }, fileContents: ["DATABASE_URL=postgres://f"] }),
+      resolveEnvValue({ env: { DATABASE_URL: "postgres://env" }, fileContents: ["DATABASE_URL=postgres://f"], key }),
     ).toBe("postgres://env");
   });
 
-  it("takes the first file that sets it and skips missing files", () => {
+  it("lets a defined but empty shell value shadow files, like @next/env", () => {
+    expect(resolveEnvValue({ env: { DATABASE_URL: "" }, fileContents: ["DATABASE_URL=postgres://f"], key })).toBe("");
+  });
+
+  it("takes the first file that defines it and skips missing files", () => {
     expect(
-      resolveDatabaseUrl({
+      resolveEnvValue({
         env: {},
         fileContents: [null, "OTHER=1", "DATABASE_URL=postgres://second", "DATABASE_URL=postgres://third"],
+        key,
       }),
     ).toBe("postgres://second");
   });
 
-  it("returns undefined when nothing sets it", () => {
-    expect(resolveDatabaseUrl({ env: { DATABASE_URL: "" }, fileContents: [null, "A=1"] })).toBeUndefined();
+  it("lets an empty assignment in a higher file shadow a lower one", () => {
+    expect(resolveEnvValue({ env: {}, fileContents: ["DATABASE_URL=", "DATABASE_URL=postgres://low"], key })).toBe("");
+  });
+
+  it("returns undefined when nothing defines it", () => {
+    expect(resolveEnvValue({ env: {}, fileContents: [null, "A=1"], key })).toBeUndefined();
   });
 });
 
@@ -86,5 +116,9 @@ describe("describeDatabaseTarget", () => {
 
   it("returns null for a value that is not a URL", () => {
     expect(describeDatabaseTarget("nope")).toBeNull();
+  });
+
+  it("does not guess a target when the value references a variable", () => {
+    expect(describeDatabaseTarget("postgres://u:p@${DB_HOST}/db")).toBeNull();
   });
 });

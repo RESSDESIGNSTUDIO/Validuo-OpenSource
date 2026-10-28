@@ -62,7 +62,7 @@ describe("runSetup", () => {
     const ctx = createDeps({ files: { ".env.example": EXAMPLE, ".env": REAL }, mtimes: fresh });
     expect(await runSetup(ctx.deps)).toBe(0);
     expect(ctx.npmCalls).toEqual(["install", "run db:migrate"]);
-    expect(ctx.logs).toContain("Baza danych: 127.0.0.1:5432/validuo");
+    expect(ctx.logs).toContain("Baza, na której zostaną zastosowane migracje: 127.0.0.1:5432/validuo");
     expect(ctx.logs).toContain("Gotowe (wykonano: 2, pominięto: 1).");
     expect(ctx.logs.at(-1)).toContain("npm run dev");
   });
@@ -95,7 +95,7 @@ describe("runSetup", () => {
   it("works without .env.example when the DATABASE_URL is already set, and skips an unreadable target", async () => {
     const ctx = createDeps({ files: { ".env": "DATABASE_URL=not-a-url\n" }, mtimes: installed });
     expect(await runSetup(ctx.deps)).toBe(0);
-    expect(ctx.logs.some((line) => line.startsWith("Baza danych:"))).toBe(false);
+    expect(ctx.logs.some((line) => line.startsWith("Baza, na której"))).toBe(false);
   });
 
   it("fails when .env is missing and there is no .env.example", async () => {
@@ -132,6 +132,72 @@ describe("runSetup", () => {
     for (const call of [...ctx.npmCalls, ...ready.npmCalls]) {
       expect(["install", "run db:migrate"]).toContain(call);
     }
+  });
+
+  describe("MIGRATION_DATABASE_URL", () => {
+    const migrationReal = "MIGRATION_DATABASE_URL=postgres://owner:own3r-pw@migrations.local:5433/other\n";
+
+    it("reports and checks the URL that migrations will actually use", async () => {
+      const ctx = createDeps({ files: { ".env.example": EXAMPLE, ".env": REAL + migrationReal }, mtimes: installed });
+      expect(await runSetup(ctx.deps)).toBe(0);
+      expect(ctx.logs).toContain("Baza, na której zostaną zastosowane migracje: migrations.local:5433/other");
+      expect(ctx.logs.join("\n")).not.toContain("own3r-pw");
+    });
+
+    it("stops when the migration URL still has the example password", async () => {
+      const example = "MIGRATION_DATABASE_URL=postgres://validuo_owner:change-me@127.0.0.1:5432/validuo\n";
+      const ctx = createDeps({
+        files: { ".env.example": EXAMPLE + example, ".env": REAL + example },
+        mtimes: installed,
+      });
+      expect(await runSetup(ctx.deps)).toBe(1);
+      expect(ctx.npmCalls).toEqual([]);
+    });
+
+    it("falls back to DATABASE_URL when the migration URL is empty", async () => {
+      const ctx = createDeps({
+        files: { ".env.example": EXAMPLE, ".env": REAL + "MIGRATION_DATABASE_URL=\n" },
+        mtimes: installed,
+      });
+      expect(await runSetup(ctx.deps)).toBe(0);
+      expect(ctx.logs).toContain("Baza, na której zostaną zastosowane migracje: 127.0.0.1:5432/validuo");
+    });
+
+    it("still requires a real runtime DATABASE_URL when only the migration URL is set", async () => {
+      const ctx = createDeps({
+        files: { ".env.example": EXAMPLE, ".env": EXAMPLE + migrationReal },
+        mtimes: installed,
+      });
+      expect(await runSetup(ctx.deps)).toBe(1);
+      expect(ctx.npmCalls).toEqual([]);
+    });
+  });
+
+  it("treats an empty DATABASE_URL in a higher-precedence file as unset, even if a lower file has a value", async () => {
+    const ctx = createDeps({
+      files: { ".env.example": EXAMPLE, ".env.local": "DATABASE_URL=\n", ".env": REAL },
+      mtimes: installed,
+    });
+    expect(await runSetup(ctx.deps)).toBe(1);
+    expect(ctx.npmCalls).toEqual([]);
+  });
+
+  it("reads the env files that match NODE_ENV", async () => {
+    const production = createDeps({
+      files: { ".env.example": EXAMPLE, ".env.production": REAL },
+      env: { NODE_ENV: "production" },
+      mtimes: installed,
+    });
+    expect(await runSetup(production.deps)).toBe(0);
+    expect(production.created).toEqual([]);
+
+    const ignoredInProduction = createDeps({
+      files: { ".env.example": EXAMPLE, ".env.development": REAL },
+      env: { NODE_ENV: "production" },
+      mtimes: installed,
+    });
+    expect(await runSetup(ignoredInProduction.deps)).toBe(1);
+    expect(ignoredInProduction.created).toEqual([[".env.example", ".env"]]);
   });
 
   it("turns unexpected exceptions into an error result", async () => {

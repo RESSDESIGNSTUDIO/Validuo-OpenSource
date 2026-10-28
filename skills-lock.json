@@ -53,7 +53,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-auto-fix-pr/SKILL.md",
-      "computedHash": "8842bdfab12a0a7a53ef65b7ffe678ccafa25f5287c90ace8fa1012d54bb5039"
+      "computedHash": "d6e0d3996e0e874bb70c3f26753bdf1339a7d9abb99d8dcd8c16651213e00c1d"
     },
     "om-auto-implement-spec": {
       "source": "open-mercato/skills",
@@ -185,7 +185,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-followup-issue-from-pr/SKILL.md",
-      "computedHash": "517bbb426c2c51d16571f75062489d58312597525cd741a8501a0d86c12e89e1"
+      "computedHash": "5ea516e6bcc518ea7eb16a676e0f65ace22c8c5dceaa8e0cf2c20c68b4942878"
     },
     "om-framework-context": {
       "source": "open-mercato/skills",
@@ -263,7 +263,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-prepare-test-env/SKILL.md",
-      "computedHash": "9095f8d11a52eacef262d828496a2019734e698f2b6f844748d3f84d3e8dbd0b"
+      "computedHash": "adc3a847c4eef9c152a055b1705421a0d0b92ffcd2c78c848fe8e5ebcab58136"
     },
     "om-qa-buddy": {
       "source": "open-mercato/skills",
@@ -287,7 +287,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-setup-agent-pipeline/SKILL.md",
-      "computedHash": "c5df0c2a3f3f8275bc2f539549468921b91182181923b066fbbdb2e709dfad37"
+      "computedHash": "c97e3ee3700662bbc92f5680422a6a470ce2bca915b1c9ac263058eff122aa70"
     },
     "om-setup-discovery-pipeline": {
       "source": "open-mercato/skills",

@@ -32,16 +32,16 @@ Phase 1: instalator (kroki 1.1–1.8); Phase 2: dokumentacja (2.1–2.2). Bramka
 
 ### Phase 1: Instalator
 
-- [ ] 1.1 Bramka testów: `scripts/**` w `include` testów i pokrycia
-- [ ] 1.2 Szkielet i punkt wejścia (`scripts/setup.mjs`, `runSetup`, wpis `setup`)
-- [ ] 1.3 Wymagania Node/npm
-- [ ] 1.4 Zależności (pominięcie przy aktualnym `node_modules`)
-- [ ] 1.5 Plik `.env` (bez nadpisywania, tryb 0600)
-- [ ] 1.6 Kontrola `DATABASE_URL`
-- [ ] 1.7 Migracje
-- [ ] 1.8 Podsumowanie i adapter Node
+- [x] 1.1 Bramka testów: `scripts/**` w `include` testów i pokrycia — 8cdea85
+- [x] 1.2 Szkielet i punkt wejścia (`scripts/setup.mjs`, `runSetup`, wpis `setup`) — b6e8645
+- [x] 1.3 Wymagania Node/npm — d0dd74f
+- [x] 1.4 Zależności (pominięcie przy aktualnym `node_modules`) — d0dd74f
+- [x] 1.5 Plik `.env` (bez nadpisywania, tryb 0600) — d0dd74f
+- [x] 1.6 Kontrola `DATABASE_URL` — d0dd74f
+- [x] 1.7 Migracje — b6e8645
+- [x] 1.8 Podsumowanie i adapter Node — b6e8645
 
 ### Phase 2: Dokumentacja
 
-- [ ] 2.1 README: szybki start i wiersz w tabeli skryptów
-- [ ] 2.2 AGENTS.md: wiersz w tabeli poleceń
+- [x] 2.1 README: szybki start i wiersz w tabeli skryptów — 47aee0c
+- [x] 2.2 AGENTS.md: wiersz w tabeli poleceń — 47aee0c

@@ -108,7 +108,26 @@ Pliki `.env*` leżą w **katalogu głównym**. Ładuje je jeden loader (`loadRoo
 
 ## Uruchomienie
 
-Wymagania: Node.js 24, npm 11, PostgreSQL 17.
+Wymagania: Node.js 24, npm 11, PostgreSQL 17 (istniejący serwer — instalator nie tworzy bazy ani ról).
+
+### Szybki start: `npm run setup`
+
+```bash
+npm run setup
+```
+
+Jedno polecenie wykonuje kroki z sekcji „Ręcznie” poniżej i można je bezpiecznie uruchamiać ponownie: instalacja zależności i tworzenie `.env` są pomijane, gdy już wykonane, a migracje (`db:migrate`) są z natury idempotentne i uruchamiane za każdym razem:
+
+1. sprawdza wersje Node.js i npm (przed jakąkolwiek zmianą),
+2. `npm install` — pomijane, gdy `node_modules` jest aktualne względem `package-lock.json`,
+3. tworzy `.env` z `.env.example` (prawa `0600`) — tylko gdy nie istnieje żaden plik `.env*` czytany przez aplikację w bieżącym trybie (`NODE_ENV`; domyślnie `.env`, `.env.local`, `.env.development`, `.env.development.local`); istniejących plików nigdy nie nadpisuje,
+4. zatrzymuje się z kodem `1`, gdy `DATABASE_URL` (lub ustawiony `MIGRATION_DATABASE_URL`) nie jest ustawiony, jest pusty albo ma przykładową wartość (hasło `change-me`) — przy pierwszym uruchomieniu tak będzie: uzupełnij `DATABASE_URL` w `.env` i uruchom `npm run setup` ponownie,
+5. wypisuje host i nazwę bazy, na której pójdą migracje (bez hasła), i stosuje je (`npm run db:migrate`) — **na bazie wskazanej przez `MIGRATION_DATABASE_URL`, a gdy go brak, przez `DATABASE_URL`, także gdy zmienna jest ustawiona w powłoce, a nie w `.env`**; sprawdź, że to baza lokalna,
+6. wypisuje następny krok: `npm run dev`.
+
+Kod wyjścia `0` oznacza gotowość (także przy ponownym uruchomieniu bez zmian), `1` — brakujące wymaganie, konfigurację do uzupełnienia albo błąd kroku. Własne komunikaty skryptu nie zawierają hasła z `DATABASE_URL`.
+
+### Ręcznie (alternatywa)
 
 ```bash
 npm install
@@ -128,6 +147,7 @@ Uruchamiaj je z katalogu głównego.
 | Polecenie | Opis |
 | --- | --- |
 | `npm run dev` | Serwer deweloperski (argumenty po `--`, np. `npm run dev -- --port 4000`) |
+| `npm run setup` | Instalator: wymagania, `npm install`, `.env`, migracje — idempotentny (patrz „Uruchomienie”) |
 | `npm run build` | Build produkcyjny aplikacji |
 | `npm start` | Start zbudowanej aplikacji |
 | `npm run lint` | ESLint dla całego repozytorium |

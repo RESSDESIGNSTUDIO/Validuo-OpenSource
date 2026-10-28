@@ -20,11 +20,12 @@ export default defineConfig({
     // Global teardown stops containers and `next start`; the 10 s default is too tight.
     teardownTimeout: 30_000,
     // Every line, branch and function of production code (`packages/*/src`) is covered by unit
-    // tests. Test infrastructure lives outside `src` (`packages/*/testing`, `packages/app/e2e`).
+    // tests. Test infrastructure lives outside `src` (`packages/*/testing`, `packages/app/e2e`). The
+    // installer (`scripts/`) is measured the same way: it is a product entry point.
     coverage: {
       provider: "v8",
-      include: ["packages/*/src/**/*.{ts,tsx}"],
-      exclude: ["**/*.test.{ts,tsx}", "**/*.d.ts", "packages/db/src/migrations/**"],
+      include: ["packages/*/src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      exclude: ["**/*.test.{ts,tsx,mjs}", "**/*.d.ts", "packages/db/src/migrations/**"],
       reporter: ["text", "html"],
       thresholds: { 100: true },
     },
@@ -34,7 +35,7 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["packages/*/{src,testing}/**/*.test.{ts,tsx}"],
+          include: ["packages/*/{src,testing}/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
           exclude: ["**/*.integration.test.ts", "**/node_modules/**"],
         },
       },

@@ -46,6 +46,7 @@ Nowa biblioteka musi rozwiązywać konkretny problem, którego nie pokrywają ob
 │   ├── core/   @validuo/core — reguły biznesowe, przypadki użycia, porty, schematy, błędy, env, DI (bez frameworka i ORM)
 │   ├── db/     @validuo/db   — MikroORM: konfiguracja, encje, migracje, repozytoria (adaptery portów z core), transakcje
 │   └── ui/     @validuo/ui   — prymitywy shadcn/ui, generyczne wzorce panelu, `cn`, motyw i globalny CSS Tailwind
+├── scripts/                  — instalator `npm run setup` (zwykły ESM bez zależności; objęty testami jednostkowymi i pokryciem)
 ├── tsconfig.base.json        — wspólna konfiguracja TypeScript
 ├── eslint.config.mjs         — jedna konfiguracja ESLint dla całego repo (w tym granice pakietów)
 ├── vitest.config.ts          — projekty testów `unit` (pokrycie 100%), `integration`, `e2e`
@@ -133,7 +134,7 @@ ui, core ──► (brak pakietów workspace)
 
 ## Testy
 
-- **Zasada: każda nowa funkcja musi mieć 100% pokrycia testami jednostkowymi** — 100% instrukcji, gałęzi, funkcji i linii dla całego kodu w `packages/*/src`, który dodaje lub zmienia. Dotyczy także poprawek błędów, refaktorów i komponentów dodanych przez `shadcn add`. Funkcja bez takich testów nie jest skończona.
+- **Zasada: każda nowa funkcja musi mieć 100% pokrycia testami jednostkowymi** — 100% instrukcji, gałęzi, funkcji i linii dla całego kodu w `packages/*/src` i `scripts/`, który dodaje lub zmienia. Dotyczy także poprawek błędów, refaktorów i komponentów dodanych przez `shadcn add`. Funkcja bez takich testów nie jest skończona.
 - Próg wymusza `npm run test:unit` (`thresholds: { 100: true }` w `vitest.config.ts`) i check **Unit tests** w CI — PR poniżej 100% nie może zostać zmergowany.
 - Z pomiaru wyłączone są wyłącznie: pliki testów, `*.d.ts` i wygenerowane migracje (`packages/db/src/migrations/**`). **Nie dodawaj nowych wykluczeń, `/* v8 ignore */` ani nie obniżaj progów bez wyraźnej zgody człowieka.** Kod nietestowalny jednostkowo refaktoryzuj (wstrzykiwane zależności, czyste funkcje), zamiast go wykluczać.
 - Infrastruktura testów leży poza `src` i nie jest kodem produkcyjnym: `packages/db/testing` (`@validuo/db/testing`: `startTestDatabase`, `requireTestDatabaseUrl`; `@validuo/db/testing/vitest`: `testDatabaseUrl()`), `packages/app/testing` (`startAppServer`, `createAgentBrowser`, `appUrl()`), `packages/app/e2e`.
@@ -146,6 +147,7 @@ ui, core ──► (brak pakietów workspace)
 
 | Polecenie | Opis |
 | --- | --- |
+| `npm run setup` | Instalator lokalny (`scripts/setup.mjs`): wymagania, `npm install`, `.env`, `db:migrate` — idempotentny; zwykły ESM bez zależności, bo działa przed `npm install`. Migruje bazę z `MIGRATION_DATABASE_URL` lub `DATABASE_URL` (także z powłoki). |
 | `npm run dev` | Serwer deweloperski Next.js (`packages/app`). Argumenty przekazuj po `--`. |
 | `npm run build` / `npm start` | Build i start produkcyjny (wymuszają `NODE_ENV=production`). |
 | `npm run lint` | ESLint dla całego repo. |

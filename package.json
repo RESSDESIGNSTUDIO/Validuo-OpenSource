@@ -16,6 +16,7 @@
     "dev": "npm run dev -w @validuo/app --",
     "build": "npm run build -w @validuo/app",
     "start": "npm run start -w @validuo/app --",
+    "setup": "node scripts/setup.mjs",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -1,14 +1,10 @@
 # Konta, logowanie i katalog uprawnień
 
 ## 📝 TLDR
-Validuo nie ma jeszcze kont, logowania ani uprawnień, a standard zabrania zgadywania ich treści w kodzie. Ta specyfikacja **proponuje** (do akceptacji właściciela) minimalny fundament: rejestrację konta, logowanie e-mail + hasło z sesją w bazie, katalog zakresów i czynności oraz politykę dostępu `read`/`write`. Bez tego nie da się zaspecyfikować historyjek E02 (#22–#24). Opisuje przyszłe zachowanie; nic z tego jeszcze nie istnieje. Nadawanie uprawnień innym osobom i zaproszenia są **poza v1** (osobna specyfikacja), ale reguły nadawania są tu zapisane jako normatywne dla niej.
+Validuo nie ma jeszcze kont, logowania ani uprawnień, a standard zabrania zgadywania ich treści w kodzie. Ta specyfikacja opisuje (zaakceptowany przez właściciela 2026-11-09) minimalny fundament: rejestrację konta, logowanie e-mail + hasło z sesją w bazie, katalog zakresów i czynności oraz politykę dostępu `read`/`write`. Bez tego nie da się zaspecyfikować historyjek E02 (#22–#24). Opisuje przyszłe zachowanie; nic z tego jeszcze nie istnieje. Nadawanie uprawnień innym osobom i zaproszenia są **poza v1** (osobna specyfikacja), ale reguły nadawania są tu zapisane jako normatywne dla niej.
 
 ## 📝 Open Questions
-Blokujące wdrożenie — wymagają decyzji właściciela (autonomiczne domyślne podano w tabeli końcowej):
-- **Q1.** Mechanizm logowania: własna usługa e-mail + hasło (Argon2id) i sesja w bazie, czy gotowa biblioteka uwierzytelniania (nowa zależność)?
-- **Q2.** Rejestracja: komunikat „e-mail zajęty” z limitem prób (domyślnie), czy weryfikacja e-mailem (wymaga poczty)?
-- **Q3.** Katalog: zakresy `account`, `group` (+ `department` i `employee` rozwiązywane przez grupę), czynności `read`, `write`, `manage_permissions`.
-- **Q4.** Poza v1: zaproszenia, nadawanie uprawnień innym osobom, reset hasła, weryfikacja e-mail.
+Brak otwartych. Q1–Q4 oraz wartości domyślne rozstrzygnął właściciel projektu 2026-11-09 (patrz „Resolved decisions” na końcu). Jedyne, co zostaje do potwierdzenia przy implementacji, to wybór konkretnej biblioteki Argon2 jako nowej zależności (krok 4).
 
 ## 📝 Problem Statement
 - Historyjki E02 (#22–#24) wymagają osoby z uprawnieniem (`[DOCUMENT]` backlog.md, brief R01, D06).
@@ -85,7 +81,7 @@ Poza v1 nie ma API nadawania, ale reguły są ustalone teraz, żeby model danych
 - Model oparty na jednym koncie autora (A03).
 
 ## 📝 Decisions in play
-D01, D06; bez zmian R01–R04, N01–N02; model „bez planów i poziomów kont” z `implemented/2026-10-23-permissions-model.md` zachowany. Właściciel zatwierdza Q1–Q4 oraz wartości limitów.
+D01, D06; bez zmian R01–R04, N01–N02; model „bez planów i poziomów kont” z `implemented/2026-10-23-permissions-model.md` zachowany. Q1–Q4 i wartości limitów zatwierdził właściciel 2026-11-09.
 
 ## 📋 Phasing
 - **Phase 1:** rejestracja i logowanie od końca do końca (pionowy wycinek: core + db + app + strony).
@@ -106,12 +102,12 @@ D01, D06; bez zmian R01–R04, N01–N02; model „bez planów i poziomów kont�
 9. `requireSession()` i rejestracje DI aktora (scoped), odczyt uprawnień przy każdym żądaniu.
 10. `AccessPolicy` dla `read`/`write` z rozwiązywaniem zakresu przez grupę nadrzędną; testy tabelaryczne (w tym odmowa dla braku uprawnienia i dla innego konta).
 
-## Resolved assumptions (autonomous defaults)
-| # | Pytanie | Przyjęta odpowiedź | Status |
+## Resolved decisions (właściciel projektu, 2026-11-09)
+| # | Pytanie | Decyzja | Status |
 |---|---|---|---|
-| Q1 | Mechanizm logowania | e-mail + hasło, Argon2id, sesja w bazie | ⚠ NEEDS HUMAN CONFIRMATION |
-| Q2 | Rejestracja i duplikat e-maila | 409 „e-mail zajęty” + limity prób | ⚠ NEEDS HUMAN CONFIRMATION |
-| Q3 | Katalog | `account`/`group` × `read`/`write`/`manage_permissions`; dział i pracownik przez grupę | ⚠ NEEDS HUMAN CONFIRMATION |
-| Q4 | Poza v1 | zaproszenia, nadawanie uprawnień, reset hasła, weryfikacja e-mail | ⚠ NEEDS HUMAN CONFIRMATION |
-| 5 | Wartości limitów, TTL sesji, parametry Argon2id | jak w „Security Design” | ⚠ NEEDS HUMAN CONFIRMATION |
-| 6 | Długość hasła | 12–128 znaków | zaproponowane |
+| Q1 | Mechanizm logowania | własna usługa: e-mail + hasło, Argon2id, sesja w bazie | zaakceptowane (opcja rekomendowana) |
+| Q2 | Rejestracja zajętego e-maila | komunikat „e-mail zajęty” + limity prób | zaakceptowane (opcja rekomendowana) |
+| Q3 | Katalog | `account`/`group` × `read`/`write`/`manage_permissions`; dział i pracownik przez grupę | zaakceptowane (opcja rekomendowana) |
+| Q4 | Poza v1 | zaproszenia, nadawanie uprawnień, reset hasła, weryfikacja e-mail | zaakceptowane (opcja rekomendowana) |
+| 5 | Limity, TTL sesji, parametry Argon2id | wartości domyślne z „Security Design” | zaakceptowane (opcja rekomendowana) |
+| 6 | Długość hasła | 12–128 znaków | zaakceptowane (opcja rekomendowana) |

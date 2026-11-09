@@ -9,6 +9,7 @@ afterAll(async () => {
   await browser.close();
 });
 
+// On timeout the error carries what the browser showed, so a CI failure explains itself.
 async function waitFor(condition: () => Promise<boolean>, attempts = 20): Promise<void> {
   for (let attempt = 0; attempt < attempts; attempt++) {
     if (await condition()) {
@@ -16,7 +17,7 @@ async function waitFor(condition: () => Promise<boolean>, attempts = 20): Promis
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error("Condition was not met in time.");
+  throw new Error(`Condition was not met in time. URL: ${await currentUrl()}\nSnapshot:\n${await browser.snapshot()}`);
 }
 
 const currentUrl = async () => JSON.stringify(await browser.run("get", "url"));

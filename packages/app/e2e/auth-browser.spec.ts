@@ -21,10 +21,10 @@ async function waitFor(condition: () => Promise<boolean>, attempts = 20): Promis
 
 const currentUrl = async () => JSON.stringify(await browser.run("get", "url"));
 
-// The accessibility snapshot may leave out the text of a live region; read the alert element itself.
+// Next.js adds its own `role=alert` route announcer, so the selector is scoped to the form.
 const alertText = async () => {
   try {
-    return JSON.stringify(await browser.run("get", "text", "[role=alert]"));
+    return JSON.stringify(await browser.run("get", "text", "form [role=alert]"));
   } catch {
     return "";
   }

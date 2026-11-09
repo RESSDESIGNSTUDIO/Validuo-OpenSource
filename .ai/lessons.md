@@ -75,3 +75,6 @@ Krok `agent-browser install --with-deps` (apt + pobranie Chrome) zawisł na pona
 
 ### 2026-10-23 — `agent-browser install --with-deps` zawiesza CI przez `fonts-noto-cjk`
 Przyczyną zawieszeń nie była sieć ogólnie, lecz pobieranie 61 MB `fonts-noto-cjk` z mirrora `azure.archive.ubuntu.com` (stało po kilku MB). `--with-deps` instaluje je zawsze, a obraz `ubuntu-24.04` ma już wszystkie biblioteki Chrome. W CI używamy samego `agent-browser install` + `agent-browser doctor` (test headless launch). `--with-deps` zostaje dla świeżych maszyn bez bibliotek.
+
+### 2026-11-09 — Bez adnotacji o AI w commitach i PR
+Narzędzie domyślnie dopisywało `Co-Authored-By: Claude…` i „Generated with Claude Code”. Użytkownik chce, by wszystko wyglądało jako jego praca, więc musiałem poprawić dwa PR-y (amend commitów + `--force` na własnych, niescalonych gałęziach, edycja opisów). Następnym razem: nigdy nie dodawaj takich linii; przed push sprawdź `git log -1 --format=%B` i treść PR. Reguła jest też w `AGENTS.md` (sekcja Git).

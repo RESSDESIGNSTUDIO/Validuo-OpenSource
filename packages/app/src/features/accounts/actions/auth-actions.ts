@@ -1,6 +1,6 @@
 "use server";
 
-import { AppError, ValidationError } from "@validuo/core/errors";
+import { isAppError, isValidationError, type ValidationError } from "@validuo/core/errors";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -35,10 +35,10 @@ function echoedValues(formData: FormData): Record<string, string> {
 
 // Expected failures become form state; anything unexpected propagates to the error boundary / log.
 function toFormState(error: unknown, formData: FormData): AuthFormState {
-  if (error instanceof ValidationError) {
+  if (isValidationError(error)) {
     return { message: error.message, fieldErrors: copy(error.fieldErrors), values: echoedValues(formData) };
   }
-  if (error instanceof AppError) {
+  if (isAppError(error)) {
     return { message: error.message, fieldErrors: {}, values: echoedValues(formData) };
   }
   throw error;

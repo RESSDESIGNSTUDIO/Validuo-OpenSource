@@ -1,6 +1,6 @@
 import "server-only";
 
-import { TooManyRequestsError, UnauthorizedError } from "@validuo/core/errors";
+import { hasErrorCode } from "@validuo/core/errors";
 import type { IssuedSession } from "@validuo/core/services/accounts";
 import { parseInput, registerSchema, signInSchema } from "@validuo/core/validators";
 
@@ -34,9 +34,9 @@ export async function signInUser(
   try {
     return await scope.resolve("authService").signIn({ ...input, ip });
   } catch (error) {
-    if (error instanceof TooManyRequestsError) {
+    if (hasErrorCode(error, "TooManyRequests")) {
       logger.warn("auth.sign_in.blocked");
-    } else if (error instanceof UnauthorizedError) {
+    } else if (hasErrorCode(error, "Unauthorized")) {
       logger.warn("auth.sign_in.failed");
     }
     throw error;

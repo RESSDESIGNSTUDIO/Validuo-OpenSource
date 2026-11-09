@@ -6,6 +6,9 @@ export {
   TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
+  hasErrorCode,
+  isAppError,
+  isValidationError,
   type AppErrorCode,
   type FieldErrors,
 } from "./app-error";

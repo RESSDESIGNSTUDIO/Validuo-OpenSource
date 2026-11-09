@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AppError, ValidationError, type AppErrorCode } from "@validuo/core/errors";
+import { isAppError, isValidationError, type AppErrorCode, type ValidationError } from "@validuo/core/errors";
 
 import type { ApiFailure, ApiResult } from "@/lib/api/api-result";
 
@@ -70,8 +70,8 @@ export function apiHandler<TData, TParams = Record<string, never>>(
 }
 
 function toFailure(error: unknown, requestId: string, logger: Logger): { status: number; body: ApiFailure } {
-  if (error instanceof AppError) {
-    const fieldErrors = error instanceof ValidationError ? copyFieldErrors(error) : undefined;
+  if (isAppError(error)) {
+    const fieldErrors = isValidationError(error) ? copyFieldErrors(error) : undefined;
     return {
       status: appErrorStatus[error.code],
       body: {

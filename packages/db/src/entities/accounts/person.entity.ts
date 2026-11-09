@@ -17,7 +17,8 @@ export const PersonSchema = defineEntity({
   uniques: [
     // Target of the composite foreign keys that tie sessions and permissions to the same account.
     { name: "persons_id_account_id_unique", properties: ["id", "accountId"] },
-    { name: "persons_account_id_user_id_unique", properties: ["accountId", "userId"] },
+    // v1: one account per user. Lifted by the invitations spec, together with account selection.
+    { name: "persons_user_id_unique", properties: ["userId"] },
   ],
 });
 

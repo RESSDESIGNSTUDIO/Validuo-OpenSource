@@ -23,8 +23,8 @@ describe("AccountService.register", () => {
     expect(fakes.accounts).toHaveLength(1);
     expect(fakes.users[0]?.passwordHash).toBe("hash:correct horse battery");
     expect(fakes.persons[0]).toMatchObject({ accountId: "acc-1", displayName: "Ala" });
-    expect(fakes.granted[0]).toMatchObject({ personId: fakes.persons[0]?.id, grantedByPersonId: fakes.persons[0]?.id });
-    expect(fakes.granted[0]?.permissions.map((p) => p.action)).toEqual(["read", "write", "manage_permissions"]);
+    expect(fakes.granted[0]).toMatchObject({ personId: fakes.persons[0]?.id });
+    expect(fakes.granted[0]?.actions).toEqual(["read", "write", "manage_permissions"]);
     expect(fakes.sessions[0]?.tokenHash).toBe(`digest:${session.token}`);
     expect(session.expiresAt.getTime() - fakes.clock.now().getTime()).toBe(AUTH_LIMITS.sessionAbsoluteMs);
   });

@@ -1,4 +1,4 @@
-import type { Permission } from "../../permissions/catalog";
+import type { PermissionAction } from "../../permissions/catalog";
 
 export type UserRecord = { id: string; passwordHash: string };
 export type PersonRecord = { id: string; accountId: string };
@@ -11,7 +11,7 @@ export type ActiveSession = {
   expiresAt: Date;
 };
 
-export type AttemptKind = "login_email" | "login_ip" | "register_ip";
+export type AttemptKind = "email_ip" | "ip" | "register_ip";
 
 export interface AccountRepository {
   create(input: { name: string }): Promise<{ id: string }>;
@@ -30,14 +30,9 @@ export interface PersonRepository {
 }
 
 export interface PermissionRepository {
-  grant(input: {
-    accountId: string;
-    personId: string;
-    grantedByPersonId: string;
-    permissions: readonly Permission[];
-  }): Promise<void>;
+  grant(input: { accountId: string; personId: string; actions: readonly PermissionAction[] }): Promise<void>;
   /** Always read from storage — permissions are never copied into the session. */
-  listForPerson(accountId: string, personId: string): Promise<Permission[]>;
+  listForPerson(accountId: string, personId: string): Promise<PermissionAction[]>;
 }
 
 export interface SessionRepository {
@@ -51,7 +46,10 @@ export interface SessionRepository {
 /** Counters that survive a rolled-back request: every call commits independently. */
 export interface LoginAttemptRepository {
   count(kind: AttemptKind, keyHash: string, windowStart: Date): Promise<number>;
-  /** Atomically increments the counter of the window and returns the new value. */
+  /**
+   * Atomically increments the counter of the window and returns the new value. Also removes a
+   * bounded batch of expired windows, so the table does not grow without limit.
+   */
   hit(kind: AttemptKind, keyHash: string, windowStart: Date): Promise<number>;
   clear(kind: AttemptKind, keyHash: string): Promise<void>;
 }

@@ -93,25 +93,18 @@ describe("MikroOrmPersonRepository", () => {
 });
 
 describe("MikroOrmPermissionRepository", () => {
-  it("writes one row per permission", async () => {
+  it("writes one row per action", async () => {
     const insertMany = vi.fn().mockResolvedValue([]);
 
     await new MikroOrmPermissionRepository(fakeEm({ insertMany })).grant({
       accountId: "acc-1",
       personId: "p1",
-      grantedByPersonId: "p1",
-      permissions: [{ scope: "account", scopeId: "acc-1", action: "read" }],
+      actions: ["read", "write"],
     });
 
     expect(insertMany).toHaveBeenCalledWith(expect.anything(), [
-      {
-        accountId: "acc-1",
-        personId: "p1",
-        grantedByPersonId: "p1",
-        scopeType: "account",
-        scopeId: "acc-1",
-        action: "read",
-      },
+      { accountId: "acc-1", personId: "p1", action: "read" },
+      { accountId: "acc-1", personId: "p1", action: "write" },
     ]);
   });
 
@@ -121,27 +114,21 @@ describe("MikroOrmPermissionRepository", () => {
     await new MikroOrmPermissionRepository(fakeEm({ insertMany })).grant({
       accountId: "acc-1",
       personId: "p1",
-      grantedByPersonId: "p1",
-      permissions: [],
+      actions: [],
     });
 
     expect(insertMany).not.toHaveBeenCalled();
   });
 
-  it("reads permissions scoped to the account and the person", async () => {
-    const find = vi.fn().mockResolvedValue([{ scopeType: "account", scopeId: "acc-1", action: "write" }]);
+  it("reads actions scoped to the account and the person", async () => {
+    const find = vi.fn().mockResolvedValue([{ action: "write" }]);
 
-    expect(await new MikroOrmPermissionRepository(fakeEm({ find })).listForPerson("acc-1", "p1")).toEqual([
-      { scope: "account", scopeId: "acc-1", action: "write" },
-    ]);
+    expect(await new MikroOrmPermissionRepository(fakeEm({ find })).listForPerson("acc-1", "p1")).toEqual(["write"]);
     expect(find).toHaveBeenCalledWith(expect.anything(), { accountId: "acc-1", personId: "p1" });
   });
 
-  it.each([
-    [{ scopeType: "planet", scopeId: "x", action: "read" }],
-    [{ scopeType: "account", scopeId: "x", action: "destroy" }],
-  ])("refuses a stored value outside the catalogue: %o", async (row) => {
-    const find = vi.fn().mockResolvedValue([row]);
+  it("refuses a stored value outside the catalogue", async () => {
+    const find = vi.fn().mockResolvedValue([{ action: "destroy" }]);
 
     await expect(new MikroOrmPermissionRepository(fakeEm({ find })).listForPerson("acc-1", "p1")).rejects.toThrow(
       "Unknown permission value in storage",
@@ -214,29 +201,39 @@ describe("MikroOrmLoginAttemptRepository", () => {
     const findOne = vi.fn().mockResolvedValueOnce({ count: 3 }).mockResolvedValueOnce(null);
     const repository = new MikroOrmLoginAttemptRepository(fakeEm({ findOne }));
 
-    expect(await repository.count("login_email", "k", now)).toBe(3);
-    expect(await repository.count("login_email", "k", now)).toBe(0);
+    expect(await repository.count("email_ip", "k", now)).toBe(3);
+    expect(await repository.count("email_ip", "k", now)).toBe(0);
   });
 
   it("increments with a single upsert and returns the new value", async () => {
     const execute = vi.fn().mockResolvedValue([{ count: 2 }]);
 
-    expect(await new MikroOrmLoginAttemptRepository(fakeEm({ execute })).hit("login_ip", "k", now)).toBe(2);
+    expect(await new MikroOrmLoginAttemptRepository(fakeEm({ execute })).hit("ip", "k", now)).toBe(2);
     expect(execute.mock.calls[0]?.[0]).toContain("on conflict");
-    expect(execute.mock.calls[0]?.[1]).toEqual(["login_ip", "k", now]);
+    expect(execute.mock.calls[0]?.[1]).toEqual(["ip", "k", now]);
+  });
+
+  it("removes a bounded batch of expired windows when it counts", async () => {
+    const execute = vi.fn().mockResolvedValue([{ count: 1 }]);
+
+    await new MikroOrmLoginAttemptRepository(fakeEm({ execute })).hit("ip", "k", now);
+
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(execute.mock.calls[1]?.[0]).toMatch(/delete from login_attempts.*window_start < \?.*limit 100/s);
+    expect(execute.mock.calls[1]?.[1]).toEqual([now]);
   });
 
   it("reports zero when the statement returns no row", async () => {
     const execute = vi.fn().mockResolvedValue([]);
 
-    expect(await new MikroOrmLoginAttemptRepository(fakeEm({ execute })).hit("login_ip", "k", now)).toBe(0);
+    expect(await new MikroOrmLoginAttemptRepository(fakeEm({ execute })).hit("ip", "k", now)).toBe(0);
   });
 
   it("clears all windows of a key", async () => {
     const nativeDelete = vi.fn().mockResolvedValue(1);
 
-    await new MikroOrmLoginAttemptRepository(fakeEm({ nativeDelete })).clear("login_email", "k");
+    await new MikroOrmLoginAttemptRepository(fakeEm({ nativeDelete })).clear("email_ip", "k");
 
-    expect(nativeDelete).toHaveBeenCalledWith(expect.anything(), { kind: "login_email", keyHash: "k" });
+    expect(nativeDelete).toHaveBeenCalledWith(expect.anything(), { kind: "email_ip", keyHash: "k" });
   });
 });

@@ -130,8 +130,8 @@
           "comment": null,
           "collation": null,
           "enumItems": [
-            "login_email",
-            "login_ip",
+            "email_ip",
+            "ip",
             "register_ip"
           ],
           "mappedType": "enum"
@@ -177,8 +177,8 @@
         },
         {
           "name": "login_attempts_kind_check",
-          "expression": "\"kind\" in ('login_email', 'login_ip', 'register_ip')",
-          "definition": "check (\"kind\" in ('login_email', 'login_ip', 'register_ip'))",
+          "expression": "\"kind\" in ('email_ip', 'ip', 'register_ip')",
+          "definition": "check (\"kind\" in ('email_ip', 'ip', 'register_ip'))",
           "columnName": "kind"
         }
       ],
@@ -245,23 +245,6 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "granted_by_person_id": {
-          "name": "granted_by_person_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
         "id": {
           "name": "id",
           "type": "uuid",
@@ -295,53 +278,17 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "uuid"
-        },
-        "scope_id": {
-          "name": "scope_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "uuid"
-        },
-        "scope_type": {
-          "name": "scope_type",
-          "type": "varchar(16)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 16,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "string"
         }
       },
       "indexes": [
         {
           "columnNames": [
             "person_id",
-            "scope_type",
-            "scope_id",
             "action"
           ],
           "composite": true,
           "constraint": true,
-          "keyName": "permissions_person_scope_action_unique",
+          "keyName": "permissions_person_action_unique",
           "primary": false,
           "unique": true
         },
@@ -362,29 +309,10 @@
           "expression": "\"action\" in ('read', 'write', 'manage_permissions')",
           "definition": "check (\"action\" in ('read', 'write', 'manage_permissions'))",
           "columnName": "action"
-        },
-        {
-          "name": "permissions_scope_check",
-          "expression": "(scope_type = 'account'::text) AND (scope_id = account_id)",
-          "definition": "CHECK ((((scope_type)::text = 'account'::text) AND (scope_id = account_id)))",
-          "columnName": "account_id"
         }
       ],
       "triggers": [],
       "foreignKeys": {
-        "permissions_granted_by_account_foreign": {
-          "columnNames": [
-            "granted_by_person_id",
-            "account_id"
-          ],
-          "constraintName": "permissions_granted_by_account_foreign",
-          "localTableName": "public.permissions",
-          "referencedColumnNames": [
-            "id",
-            "account_id"
-          ],
-          "referencedTableName": "public.persons"
-        },
         "permissions_person_account_foreign": {
           "columnNames": [
             "person_id",
@@ -412,7 +340,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -480,7 +408,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": false,
+          "unique": true,
           "length": null,
           "precision": null,
           "scale": null,
@@ -492,17 +420,6 @@
         }
       },
       "indexes": [
-        {
-          "columnNames": [
-            "account_id",
-            "user_id"
-          ],
-          "composite": true,
-          "constraint": true,
-          "keyName": "persons_account_id_user_id_unique",
-          "primary": false,
-          "unique": true
-        },
         {
           "columnNames": [
             "id",
@@ -529,10 +446,10 @@
             "user_id"
           ],
           "composite": false,
-          "constraint": false,
-          "keyName": "persons_user_id_index",
+          "constraint": true,
+          "keyName": "persons_user_id_unique",
           "primary": false,
-          "unique": false
+          "unique": true
         }
       ],
       "checks": [],

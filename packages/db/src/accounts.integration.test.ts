@@ -61,45 +61,27 @@ describe("account schema constraints", () => {
       }),
     ).rejects.toThrow();
     await expect(
-      s.permissions.grant({
-        accountId: b.accountId,
-        personId: a.personId,
-        grantedByPersonId: a.personId,
-        permissions: [{ scope: "account", scopeId: b.accountId, action: "read" }],
-      }),
+      s.permissions.grant({ accountId: b.accountId, personId: a.personId, actions: ["read"] }),
     ).rejects.toThrow();
   });
 
-  it("refuses a grant recorded by a person of another account", async () => {
+  it("refuses a duplicate permission", async () => {
     const s = scope();
     const a = await createMember(s, "a@example.pl");
-    const b = await createMember(s, "b@example.pl");
+    const grant = (action: "read" | "write") =>
+      s.permissions.grant({ accountId: a.accountId, personId: a.personId, actions: [action] });
 
-    await expect(
-      s.permissions.grant({
-        accountId: a.accountId,
-        personId: a.personId,
-        grantedByPersonId: b.personId,
-        permissions: [{ scope: "account", scopeId: a.accountId, action: "read" }],
-      }),
-    ).rejects.toThrow();
+    await grant("read");
+    await expect(grant("read")).rejects.toThrow();
+    await expect(grant("write")).resolves.toBeUndefined();
   });
 
-  it("allows only the account scope on the account itself, and no duplicate permission", async () => {
+  it("gives a user at most one account in v1", async () => {
     const s = scope();
     const a = await createMember(s, "a@example.pl");
-    const grant = (scopeId: string, action: "read" | "write") =>
-      s.permissions.grant({
-        accountId: a.accountId,
-        personId: a.personId,
-        grantedByPersonId: a.personId,
-        permissions: [{ scope: "account", scopeId, action }],
-      });
+    const second = await s.accounts.create({ name: "Druga firma" });
 
-    await expect(grant("00000000-0000-4000-8000-000000000000", "read")).rejects.toThrow();
-    await grant(a.accountId, "read");
-    await expect(grant(a.accountId, "read")).rejects.toThrow();
-    await expect(grant(a.accountId, "write")).resolves.toBeUndefined();
+    await expect(s.persons.create({ accountId: second.id, userId: a.userId, displayName: "Ala" })).rejects.toThrow();
   });
 
   it("rejects values outside the catalogue and a non-canonical e-mail", async () => {
@@ -107,11 +89,10 @@ describe("account schema constraints", () => {
     const a = await createMember(s, "a@example.pl");
 
     await expect(
-      s.em.execute(
-        `insert into permissions (account_id, person_id, scope_type, scope_id, action, granted_by_person_id)
-         values (?, ?, 'account', ?, 'destroy', ?)`,
-        [a.accountId, a.personId, a.accountId, a.personId],
-      ),
+      s.em.execute(`insert into permissions (account_id, person_id, action) values (?, ?, 'destroy')`, [
+        a.accountId,
+        a.personId,
+      ]),
     ).rejects.toThrow();
     await expect(s.users.create({ email: "Mixed@Example.pl", passwordHash: "h" })).rejects.toThrow();
   });
@@ -131,16 +112,9 @@ describe("account repositories", () => {
     const s = scope();
     const a = await createMember(s, "a@example.pl");
     const b = await createMember(s, "b@example.pl");
-    await s.permissions.grant({
-      accountId: a.accountId,
-      personId: a.personId,
-      grantedByPersonId: a.personId,
-      permissions: [{ scope: "account", scopeId: a.accountId, action: "manage_permissions" }],
-    });
+    await s.permissions.grant({ accountId: a.accountId, personId: a.personId, actions: ["manage_permissions"] });
 
-    expect(await s.permissions.listForPerson(a.accountId, a.personId)).toEqual([
-      { scope: "account", scopeId: a.accountId, action: "manage_permissions" },
-    ]);
+    expect(await s.permissions.listForPerson(a.accountId, a.personId)).toEqual(["manage_permissions"]);
     expect(await s.permissions.listForPerson(b.accountId, b.personId)).toEqual([]);
     expect(await s.permissions.listForPerson(b.accountId, a.personId)).toEqual([]);
   });
@@ -178,12 +152,36 @@ describe("account repositories", () => {
     const s = scope();
     const window = new Date("2026-01-01T12:00:00Z");
 
-    await Promise.all(Array.from({ length: 10 }, () => scope().attempts.hit("login_email", "k".repeat(64), window)));
+    await Promise.all(Array.from({ length: 10 }, () => scope().attempts.hit("email_ip", "k".repeat(64), window)));
 
-    expect(await s.attempts.count("login_email", "k".repeat(64), window)).toBe(10);
-    expect(await s.attempts.count("login_email", "k".repeat(64), new Date("2026-01-01T12:15:00Z"))).toBe(0);
-    await s.attempts.clear("login_email", "k".repeat(64));
-    expect(await scope().attempts.count("login_email", "k".repeat(64), window)).toBe(0);
+    expect(await s.attempts.count("email_ip", "k".repeat(64), window)).toBe(10);
+    expect(await s.attempts.count("email_ip", "k".repeat(64), new Date("2026-01-01T12:15:00Z"))).toBe(0);
+    await s.attempts.clear("email_ip", "k".repeat(64));
+    expect(await scope().attempts.count("email_ip", "k".repeat(64), window)).toBe(0);
+  });
+
+  it("drops expired windows when it counts, at most a bounded batch each time", async () => {
+    const s = scope();
+    const old = new Date("2026-01-01T10:00:00Z");
+    const window = new Date("2026-01-01T12:00:00Z");
+    for (let n = 0; n < 150; n++) {
+      await s.attempts.hit("ip", `${n}`.padStart(64, "0"), old);
+    }
+
+    await s.attempts.hit("ip", "k".repeat(64), window);
+    const [first] = await s.em.execute<{ n: string }[]>(
+      "select count(*)::text as n from login_attempts where window_start = ?",
+      [old],
+    );
+    expect(first?.n).toBe("50");
+
+    await s.attempts.hit("ip", "k".repeat(64), window);
+    const [second] = await s.em.execute<{ n: string }[]>(
+      "select count(*)::text as n from login_attempts where window_start = ?",
+      [old],
+    );
+    expect(second?.n).toBe("0");
+    expect(await s.attempts.count("ip", "k".repeat(64), window)).toBe(2);
   });
 });
 

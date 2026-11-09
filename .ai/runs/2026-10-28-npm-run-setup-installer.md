@@ -1,6 +1,6 @@
 # Plan wykonania: instalator `npm run setup`
 
-Source doc: .ai/specs/2026-10-28-npm-run-setup-installer.md
+Source doc: .ai/specs/implemented/2026-10-28-npm-run-setup-installer.md
 
 ## Goal
 

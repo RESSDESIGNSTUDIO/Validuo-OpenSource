@@ -23,6 +23,7 @@ export function SignInForm({ initialState = null }: { initialState?: AuthFormSta
         type="email"
         autoComplete="username"
         errors={state?.fieldErrors.email}
+        defaultValue={state?.values.email}
       />
       <AuthField
         name="password"

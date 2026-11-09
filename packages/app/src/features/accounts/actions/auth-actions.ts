@@ -19,13 +19,27 @@ function readFields(formData: FormData, names: readonly Field[]): Record<string,
   return Object.fromEntries(names.map((name) => [name, formData.get(name)]));
 }
 
+// Text fields that are safe to give back to the form (never the password).
+const ECHOED_FIELDS: readonly Field[] = ["email", "accountName", "displayName"];
+
+function echoedValues(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const name of ECHOED_FIELDS) {
+    const value = formData.get(name);
+    if (typeof value === "string") {
+      values[name] = value;
+    }
+  }
+  return values;
+}
+
 // Expected failures become form state; anything unexpected propagates to the error boundary / log.
-function toFormState(error: unknown): AuthFormState {
+function toFormState(error: unknown, formData: FormData): AuthFormState {
   if (error instanceof ValidationError) {
-    return { message: error.message, fieldErrors: copy(error.fieldErrors) };
+    return { message: error.message, fieldErrors: copy(error.fieldErrors), values: echoedValues(formData) };
   }
   if (error instanceof AppError) {
-    return { message: error.message, fieldErrors: {} };
+    return { message: error.message, fieldErrors: {}, values: echoedValues(formData) };
   }
   throw error;
 }
@@ -60,7 +74,7 @@ export async function registerAction(_previous: AuthFormState, formData: FormDat
         sessionCookieAttributes(session.expiresAt, secure),
       );
     } catch (error) {
-      return toFormState(error);
+      return toFormState(error, formData);
     }
     redirect("/backend");
   });
@@ -77,7 +91,7 @@ export async function signInAction(_previous: AuthFormState, formData: FormData)
         sessionCookieAttributes(session.expiresAt, secure),
       );
     } catch (error) {
-      return toFormState(error);
+      return toFormState(error, formData);
     }
     redirect("/backend");
   });

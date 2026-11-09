@@ -82,9 +82,11 @@ describe("registerAction", () => {
   it("returns field errors as form state without a cookie or redirect", async () => {
     mocks.registerAccount.mockRejectedValue(new ValidationError("Popraw pola.", { password: ["Za krótkie."] }));
 
-    expect(await registerAction(null, form({ email: "a@b.pl" }))).toEqual({
+    expect(await registerAction(null, form({ email: "a@b.pl", password: "secret", accountName: "Firma" }))).toEqual({
       message: "Popraw pola.",
       fieldErrors: { password: ["Za krótkie."] },
+      // Non-secret fields come back so the cleared form can be refilled; the password never does.
+      values: { email: "a@b.pl", accountName: "Firma" },
     });
     expect(mocks.store.set).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -96,6 +98,7 @@ describe("registerAction", () => {
     expect(await registerAction(null, form(fields))).toEqual({
       message: "Ten adres e-mail jest już zajęty.",
       fieldErrors: {},
+      values: { email: "a@b.pl", accountName: "Firma", displayName: "Ala" },
     });
   });
 
@@ -143,6 +146,7 @@ describe("signInAction", () => {
     expect(await signInAction(null, form({ email: "a@b.pl", password: "x" }))).toEqual({
       message: "Nieprawidłowy adres e-mail lub hasło.",
       fieldErrors: {},
+      values: { email: "a@b.pl" },
     });
     expect(mocks.store.set).not.toHaveBeenCalled();
   });

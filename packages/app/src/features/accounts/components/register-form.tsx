@@ -22,12 +22,14 @@ export function RegisterForm({ initialState = null }: { initialState?: AuthFormS
         label="Nazwa konta (firmy)"
         autoComplete="organization"
         errors={state?.fieldErrors.accountName}
+        defaultValue={state?.values.accountName}
       />
       <AuthField
         name="displayName"
         label="Imię i nazwisko"
         autoComplete="name"
         errors={state?.fieldErrors.displayName}
+        defaultValue={state?.values.displayName}
       />
       <AuthField
         name="email"
@@ -35,6 +37,7 @@ export function RegisterForm({ initialState = null }: { initialState?: AuthFormS
         type="email"
         autoComplete="username"
         errors={state?.fieldErrors.email}
+        defaultValue={state?.values.email}
       />
       <AuthField
         name="password"

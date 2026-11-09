@@ -59,6 +59,7 @@ describe("SignInForm", () => {
         initialState={{
           message: "Nieprawidłowy adres e-mail lub hasło.",
           fieldErrors: { email: ["Podaj poprawny adres e-mail."] },
+          values: { email: "ala@example.pl" },
         }}
       />,
     );
@@ -66,6 +67,7 @@ describe("SignInForm", () => {
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("Nieprawidłowy adres e-mail lub hasło.");
     expect(markup).toContain("Podaj poprawny adres e-mail.");
+    expect(markup).toContain('value="ala@example.pl"');
   });
 });
 
@@ -82,11 +84,19 @@ describe("RegisterForm", () => {
 
   it("shows the message and field errors from a failed submission", () => {
     const markup = renderToStaticMarkup(
-      <RegisterForm initialState={{ message: "Popraw pola.", fieldErrors: { password: ["Za krótkie."] } }} />,
+      <RegisterForm
+        initialState={{
+          message: "Popraw pola.",
+          fieldErrors: { password: ["Za krótkie."] },
+          values: { accountName: "Firma", displayName: "Ala", email: "ala@example.pl" },
+        }}
+      />,
     );
 
     expect(markup).toContain("Popraw pola.");
     expect(markup).toContain("Za krótkie.");
+    expect(markup).toContain('value="Firma"');
+    expect(markup).toContain('value="Ala"');
   });
 });
 

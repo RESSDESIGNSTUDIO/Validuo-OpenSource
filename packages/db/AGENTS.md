@@ -22,3 +22,7 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - Nie importuj z `@validuo/app`, `@validuo/ui`, `next`, React ani bezpośrednio `awilix` (wymusza ESLint).
 - Nowe pakiety `@mikro-orm/*` dopisz do `serverExternalPackages` w `packages/app/next.config.ts`.
 - Kod w `src` ma 100% pokrycia testami jednostkowymi (bez bazy: fałszywe `orm`/`em` lub leniwy ORM bez połączenia). Testy integracyjne (`*.integration.test.ts`) wyłącznie na bazie z `testDatabaseUrl()`; uprawnienia i RLS testujemy na roli runtime, nie na właścicielu tabel.
+
+## Ręczne ograniczenia w migracjach (uwaga przy `db:migration:create`)
+
+Migracja kont (`Migration20261109132007`) zawiera ograniczenia, których encje nie opisują: klucze obce (także złożone `(person_id, account_id)` → `persons (id, account_id)`), CHECK-i i indeksy po FK. Encje mapują tylko zwykłe kolumny, więc kolejny `npm run db:migration:create` zaproponuje ich **usunięcie** — wygenerowane `drop constraint`/`drop index` dla tych nazw trzeba skasować z nowej migracji przed zastosowaniem (zmiany, które faktycznie robisz, zostaw). Test integracyjny `accounts.integration.test.ts` pilnuje, że ograniczenia istnieją.

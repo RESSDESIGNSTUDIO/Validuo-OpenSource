@@ -9,8 +9,30 @@ describe("parseServerEnv", () => {
   it("applies defaults for optional database settings", () => {
     expect(parseServerEnv({ DATABASE_URL: databaseUrl })).toEqual({
       database: { url: databaseUrl, poolMin: 0, poolMax: 10, debug: false },
+      auth: { appOrigin: undefined, trustedProxy: false },
       migrationDatabaseUrl: databaseUrl,
     });
+  });
+
+  it("parses the authentication settings", () => {
+    const env = parseServerEnv({
+      DATABASE_URL: databaseUrl,
+      APP_ORIGIN: "https://app.example.com",
+      TRUSTED_PROXY: "true",
+    });
+
+    expect(env.auth).toEqual({ appOrigin: "https://app.example.com", trustedProxy: true });
+  });
+
+  it.each(["app.example.com", "ftp://app.example.com", "https://app.example.com/", "https://app.example.com/path"])(
+    "rejects APP_ORIGIN %s",
+    (value) => {
+      expect(() => parseServerEnv({ DATABASE_URL: databaseUrl, APP_ORIGIN: value })).toThrow(/APP_ORIGIN/);
+    },
+  );
+
+  it("rejects a malformed TRUSTED_PROXY", () => {
+    expect(() => parseServerEnv({ DATABASE_URL: databaseUrl, TRUSTED_PROXY: "maybe" })).toThrow(/TRUSTED_PROXY/);
   });
 
   it("parses explicit values and treats empty strings as unset", () => {

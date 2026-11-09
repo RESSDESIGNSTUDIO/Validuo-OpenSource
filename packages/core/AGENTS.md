@@ -11,6 +11,13 @@ Obecnie:
 - `src/errors/` (`@validuo/core/errors`) — `AppError` (`code: AppErrorCode`) i podklasy `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ValidationError` (`fieldErrors`), `ConflictError`; `ConfigurationError` (nie jest `AppError` → zawsze 500).
 - `src/di/` (`@validuo/core/di`) — `createAppContainer<TCradle>(registrations)`, typy `AppContainer<T>`, `Registrations<T>`, re-eksport `asClass`/`asFunction`/`asValue`/`aliasTo`/`Lifetime`. Jedyne miejsce importu `awilix`.
 
+Konta i uprawnienia (spec `.ai/specs/2026-11-09-accounts-auth-permissions.md`):
+
+- `src/permissions/catalog.ts` (`@validuo/core/permissions`) — jedyny katalog zakresów (`account`, `group`) i czynności (`read`, `write`, `manage_permissions`); `src/policies/access.policy.ts` (`@validuo/core/policies/access`) — `can`/`assertCan(actor, action, target)`, fail closed, dział/pracownik przez `groupId` grupy nadrzędnej;
+- `src/ports/accounts`, `src/ports/security`, `src/ports/transactions` — porty repozytoriów, `PasswordHasher`, `TokenGenerator`, `Clock`, `UnitOfWork`;
+- `src/services/accounts` (`@validuo/core/services/accounts`) — `AccountService.register`, `AuthService.signIn/signOut/authenticate`, `AUTH_LIMITS` (limity prób i czasy sesji w jednym miejscu); `src/validators` (`@validuo/core/validators`) — `registerSchema`, `signInSchema`, `parseInput`;
+- `testing/fakes.ts` — fałszywe porty w pamięci dla testów usług (poza `src`, nie liczy się do pokrycia).
+
 Docelowo (rozdz. 9 standardu; tworzymy wraz z pierwszą funkcją): `domain/<domena>/`, `policies/*.policy.ts`, `services/<domena>/*.service.ts`, `ports/<domena>/*.repository.ts` / `*.gateway.ts` / `*.port.ts`, `ports/transactions/unit-of-work.port.ts`, `validators/<domena>/*.schema.ts`, `contracts/` (`@validuo/core/contracts` — schematy i DTO bez zależności serwerowych, importowane przez formularze i adaptery w `app`).
 
 ## Zasady

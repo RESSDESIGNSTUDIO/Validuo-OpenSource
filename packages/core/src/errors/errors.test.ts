@@ -5,7 +5,11 @@ import {
   ConfigurationError,
   ConflictError,
   ForbiddenError,
+  hasErrorCode,
+  isAppError,
+  isValidationError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
 } from ".";
@@ -16,6 +20,7 @@ describe("AppError subclasses", () => {
     [ForbiddenError, "Forbidden"],
     [NotFoundError, "NotFound"],
     [ConflictError, "Conflict"],
+    [TooManyRequestsError, "TooManyRequests"],
   ] as const)("%o carries code %s, its own name and the cause", (ErrorClass, code) => {
     const cause = new Error("root cause");
     const error = new ErrorClass("Komunikat dla użytkownika.", { cause });
@@ -44,5 +49,31 @@ describe("ConfigurationError", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(AppError);
     expect(error.name).toBe("ConfigurationError");
+  });
+});
+
+describe("bundle-safe guards", () => {
+  // What another bundled copy of `@validuo/core` produces: same brand, different class identity.
+  const foreign = (code: string) =>
+    Object.assign(new Error("z innej paczki"), { [Symbol.for("@validuo/core/AppError")]: true, code });
+
+  it("recognise AppError instances and errors thrown by another copy of the module", () => {
+    expect(isAppError(new ConflictError("x"))).toBe(true);
+    expect(isAppError(foreign("Conflict"))).toBe(true);
+    expect(foreign("Conflict") instanceof AppError).toBe(false);
+  });
+
+  it("do not mistake other values for AppError", () => {
+    expect(isAppError(new Error("x"))).toBe(false);
+    expect(isAppError({ code: "Conflict", [Symbol.for("@validuo/core/AppError")]: true })).toBe(false);
+    expect(isAppError(null)).toBe(false);
+  });
+
+  it("match a specific kind by code", () => {
+    expect(hasErrorCode(foreign("TooManyRequests"), "TooManyRequests")).toBe(true);
+    expect(hasErrorCode(foreign("Conflict"), "TooManyRequests")).toBe(false);
+    expect(hasErrorCode(new Error("x"), "Conflict")).toBe(false);
+    expect(isValidationError(new ValidationError("x", {}))).toBe(true);
+    expect(isValidationError(new ConflictError("x"))).toBe(false);
   });
 });

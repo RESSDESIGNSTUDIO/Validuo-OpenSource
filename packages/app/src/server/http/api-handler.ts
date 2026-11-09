@@ -1,12 +1,13 @@
 import "server-only";
 
-import { AppError, ValidationError, type AppErrorCode } from "@validuo/core/errors";
+import { isAppError, isValidationError, type AppErrorCode, type ValidationError } from "@validuo/core/errors";
 
 import type { ApiFailure, ApiResult } from "@/lib/api/api-result";
 
 import { getContainer, withRequestScope, type RequestScope } from "../container";
 import { createJsonLogger, type Logger } from "../logging/logger";
 import { HttpError } from "./http-error";
+import { assertSameOrigin } from "./origin-check";
 
 export type ApiHandlerContext<TParams> = {
   request: Request;
@@ -17,7 +18,12 @@ export type ApiHandlerContext<TParams> = {
   logger: Logger;
 };
 
-export type ApiReply<T> = { data: T; status?: number };
+export type ApiReply<T> = {
+  data: T;
+  status?: number;
+  /** Complete `Set-Cookie` header values (session start / end). */
+  setCookies?: readonly string[];
+};
 
 const appErrorStatus: Record<AppErrorCode, number> = {
   Unauthorized: 401,
@@ -25,6 +31,7 @@ const appErrorStatus: Record<AppErrorCode, number> = {
   NotFound: 404,
   Validation: 422,
   Conflict: 409,
+  TooManyRequests: 429,
 };
 
 const UNEXPECTED_ERROR_MESSAGE = "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.";
@@ -48,10 +55,12 @@ export function apiHandler<TData, TParams = Record<string, never>>(
     try {
       const params = await segment.params;
       const reply = await withRequestScope((scope) => {
+        // Before any work: a cross-site mutation must not reach the use case.
+        assertSameOrigin(request, scope.resolve("env").auth.appOrigin);
         const logger = scope.resolve("logger").child({ requestId, operation });
         return handler({ request, params, scope, requestId, logger });
       });
-      return json({ ok: true, data: reply.data }, reply.status ?? 200, requestId);
+      return json({ ok: true, data: reply.data }, reply.status ?? 200, requestId, reply.setCookies);
     } catch (error) {
       const logger = rootLogger().child({ requestId, operation });
       const { status, body } = toFailure(error, requestId, logger);
@@ -61,8 +70,8 @@ export function apiHandler<TData, TParams = Record<string, never>>(
 }
 
 function toFailure(error: unknown, requestId: string, logger: Logger): { status: number; body: ApiFailure } {
-  if (error instanceof AppError) {
-    const fieldErrors = error instanceof ValidationError ? copyFieldErrors(error) : undefined;
+  if (isAppError(error)) {
+    const fieldErrors = isValidationError(error) ? copyFieldErrors(error) : undefined;
     return {
       status: appErrorStatus[error.code],
       body: {
@@ -101,10 +110,14 @@ function rootLogger(): Logger {
   }
 }
 
-function json<T>(body: ApiResult<T>, status: number, requestId: string): Response {
-  return Response.json(body, {
-    status,
+function json<T>(body: ApiResult<T>, status: number, requestId: string, setCookies: readonly string[] = []): Response {
+  const headers = new Headers({
+    "x-request-id": requestId,
     // API responses may carry tenant data; never let shared caches store them.
-    headers: { "x-request-id": requestId, "cache-control": "no-store" },
+    "cache-control": "no-store",
   });
+  for (const cookie of setCookies) {
+    headers.append("set-cookie", cookie);
+  }
+  return Response.json(body, { status, headers });
 }

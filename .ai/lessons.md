@@ -78,3 +78,18 @@ Przyczyną zawieszeń nie była sieć ogólnie, lecz pobieranie 61 MB `fonts-not
 
 ### 2026-11-09 — Bez adnotacji o AI w commitach i PR
 Narzędzie domyślnie dopisywało `Co-Authored-By: Claude…` i „Generated with Claude Code”. Użytkownik chce, by wszystko wyglądało jako jego praca, więc musiałem poprawić dwa PR-y (amend commitów + `--force` na własnych, niescalonych gałęziach, edycja opisów). Następnym razem: nigdy nie dodawaj takich linii; przed push sprawdź `git log -1 --format=%B` i treść PR. Reguła jest też w `AGENTS.md` (sekcja Git).
+
+### 2026-11-09 — Next.js 16: `request.url` w Route Handlerze nie odzwierciedla `Host`
+Przy `next start --hostname 127.0.0.1` pole `request.url` miało origin `http://localhost:PORT`, więc porównanie `Origin` z `new URL(request.url).origin` odrzucało własne żądania (403). Origin własnej aplikacji składamy z nagłówka `Host` (schemat z URL), a za proxy kończącym TLS ustawiamy `APP_ORIGIN`. Przy okazji: Route Handler nie ma adresu IP połączenia, więc limity per IP wymagają `TRUSTED_PROXY` i nagłówka `x-forwarded-for` od zaufanego proxy. Scenariusz E2E na buildzie produkcyjnym wyłapał to dopiero po `npm run build` — testy jednostkowe z `new Request(url)` tego nie pokazują.
+
+### 2026-11-09 — Awilix (tryb PROXY): nie drukuj obiektów trzymających cradle w asercjach
+`expect(repoA).not.toBe(repoB)` na obiektach z wstrzykniętym cradle wywołuje w Vitest odczyt właściwości proxy (`size`) i kończy się `AwilixResolutionError`. Porównuj referencje jako wartości logiczne (`a === b`).
+
+### 2026-11-09 — Ręczne FK i CHECK-i vs `db:migration:create`
+Encje `defineEntity` mapują zwykłe kolumny, a klucze złożone `(person_id, account_id)` i CHECK-i dopisano ręcznie w migracji. Kolejne `db:migration:create` zaproponuje ich usunięcie (diff idzie względem bazy). Wygenerowane `drop constraint` dla tych nazw kasuj z nowej migracji; ograniczenia pilnuje `accounts.integration.test.ts`. Opis w `packages/db/AGENTS.md`.
+
+### 2026-11-09 — Środowisko agenta: PostgreSQL 17 jest, Dockera i Chrome brak
+W środowisku są binarki `/usr/lib/postgresql/17/bin`: `initdb` do katalogu tymczasowego, `pg_ctl -o "-p 54329 -k <dir>"`, baza z „test” w nazwie i `TEST_DATABASE_URL` wystarczają do `test:integration` oraz do API-owej części E2E (`npm run build` + `vitest --project e2e <plik>`). Chrome pobiera się przez `agent-browser install`, ale nie startuje (brak bibliotek systemowych) — scenariusze przeglądarkowe sprawdza dopiero CI. Nie używaj `pkill -f "next start"` w powłoce agenta: wzorzec pasuje do jej własnej linii poleceń.
+
+### 2026-11-09 — Next.js 16 bundluje `@validuo/core` osobno dla Route Handlerów i Server Actions: nie używaj `instanceof` na błędach
+Kontener DI żyje na `globalThis`, więc usługa utworzona przez Route Handler (pierwsze żądanie) rzucała `UnauthorizedError` z kopii modułu warstwy route, a akcja formularza sprawdzała `instanceof` na kopii z warstwy SSR — fałsz, błąd wychodził jako 500 („This page couldn’t load”). Testy jednostkowe i integracyjne (jedna kopia modułu) tego nie pokazują; wyłapał to dopiero E2E z przeglądarką w CI, a odtworzyłem lokalnie replayem Server Action przez `curl` (pola `$ACTION_REF_1`, `$ACTION_1:0`, `$ACTION_1:1`, `$ACTION_KEY` + zwykłe pola formularza) po wcześniejszym żądaniu do Route Handlera. Rozpoznawaj błędy domenowe przez `isAppError`/`hasErrorCode`/`isValidationError` z `@validuo/core/errors` (marka `Symbol.for`), nie przez `instanceof`.

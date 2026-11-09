@@ -12,8 +12,16 @@ export type DatabaseConfig = {
   debug: boolean;
 };
 
+export type AuthConfig = {
+  /** Public origin of the application (`https://app.example.com`); unset → the request's `Host`. */
+  appOrigin: string | undefined;
+  /** Whether `x-forwarded-for` comes from a proxy we control and may identify the client IP. */
+  trustedProxy: boolean;
+};
+
 export type ServerEnv = {
   database: DatabaseConfig;
+  auth: AuthConfig;
   /** Connection used by the MikroORM CLI (migrations); defaults to `database.url`, e.g. locally. */
   migrationDatabaseUrl: string;
 };
@@ -24,6 +32,13 @@ const optional = <T extends z.ZodType>(schema: T) =>
 
 const postgresUrl = z.url({ protocol: /^postgres(ql)?$/, error: "must be a postgres:// or postgresql:// URL" });
 
+// An origin has no path, query or trailing slash: it is compared as a string with the `Origin` header.
+const httpOrigin = z
+  .url({ protocol: /^https?$/, error: "must be an http(s) URL" })
+  .refine((value) => URL.canParse(value) && new URL(value).origin === value, {
+    error: "must be an origin without a path or trailing slash",
+  });
+
 const serverEnvSchema = z
   .object({
     DATABASE_URL: postgresUrl,
@@ -31,6 +46,8 @@ const serverEnvSchema = z
     DB_POOL_MIN: optional(z.coerce.number().int().min(0).default(0)),
     DB_POOL_MAX: optional(z.coerce.number().int().min(1).default(10)),
     DB_DEBUG: optional(z.stringbool().default(false)),
+    APP_ORIGIN: optional(httpOrigin.optional()),
+    TRUSTED_PROXY: optional(z.stringbool().default(false)),
   })
   .refine((env) => env.DB_POOL_MIN <= env.DB_POOL_MAX, {
     path: ["DB_POOL_MAX"],
@@ -43,6 +60,7 @@ const serverEnvSchema = z
       poolMax: env.DB_POOL_MAX,
       debug: env.DB_DEBUG,
     },
+    auth: { appOrigin: env.APP_ORIGIN, trustedProxy: env.TRUSTED_PROXY },
     migrationDatabaseUrl: env.MIGRATION_DATABASE_URL ?? env.DATABASE_URL,
   }));
 

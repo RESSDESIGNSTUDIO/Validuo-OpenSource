@@ -12,7 +12,7 @@ export const migrationsPath = path.join(import.meta.dirname, "migrations");
  * MikroORM options with the Migrator, connected with the migration account
  * (`MIGRATION_DATABASE_URL`, defaults to `DATABASE_URL`). Used by the CLI and by test databases.
  */
-export function createMigrationOrmConfig(env: ServerEnv): Options {
+export function createMigrationOrmConfig(env: Pick<ServerEnv, "database" | "migrationDatabaseUrl">): Options {
   return defineConfig({
     ...createOrmConfig({ ...env.database, url: env.migrationDatabaseUrl }),
     extensions: [Migrator],

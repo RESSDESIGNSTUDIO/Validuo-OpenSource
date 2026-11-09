@@ -11,7 +11,7 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - `testing/` (poza `src`, infrastruktura testów) — `@validuo/db/testing`: `startTestDatabase()` (PostgreSQL 17 z testcontainers albo `TEST_DATABASE_URL`, migracje MikroORM), `requireTestDatabaseUrl()`; `@validuo/db/testing/vitest`: `testDatabaseUrl()`; `postgres.global-setup.ts` projektu `integration`.
 - `src/mikro-orm.config.ts` — konfiguracja CLI MikroORM (`npm run db -- <komenda>`, `db:migration:*`): `loadRootEnv()` + `parseServerEnv`, Migrator, połączenie kontem `MIGRATION_DATABASE_URL` (domyślnie `DATABASE_URL`). Wskazana w `package.json` (`mikro-orm.configPaths`).
 - `src/migrations/` — migracje i `.snapshot.json` (commitowane; wyłączone z ESLint i Prettiera).
-- Docelowo (z pierwszą funkcją): `src/repositories/<domena>/mikro-orm-<nazwa>.repository.ts` (adaptery portów z `core`), `src/transactions/mikro-orm-unit-of-work.ts`.
+- `src/entities/accounts/` (konta, użytkownicy, osoby, sesje, uprawnienia, liczniki prób), `src/repositories/<domena>/mikro-orm-<nazwa>.repository.ts` (adaptery portów z `core`, rejestrowane jako `scoped` w `dbRegistrations`), `src/transactions/mikro-orm-unit-of-work.ts` (`begin`/`commit`/`rollback` na `em` scope'u — repozytoria dzielą ten `em`).
 
 ## Zasady
 
@@ -22,3 +22,7 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - Nie importuj z `@validuo/app`, `@validuo/ui`, `next`, React ani bezpośrednio `awilix` (wymusza ESLint).
 - Nowe pakiety `@mikro-orm/*` dopisz do `serverExternalPackages` w `packages/app/next.config.ts`.
 - Kod w `src` ma 100% pokrycia testami jednostkowymi (bez bazy: fałszywe `orm`/`em` lub leniwy ORM bez połączenia). Testy integracyjne (`*.integration.test.ts`) wyłącznie na bazie z `testDatabaseUrl()`; uprawnienia i RLS testujemy na roli runtime, nie na właścicielu tabel.
+
+## Ręczne ograniczenia w migracjach (uwaga przy `db:migration:create`)
+
+Migracja kont (`Migration20261109132007`) zawiera ograniczenia, których encje nie opisują: klucze obce (także złożone `(person_id, account_id)` → `persons (id, account_id)`), CHECK-i i indeksy po FK. Encje mapują tylko zwykłe kolumny, więc kolejny `npm run db:migration:create` zaproponuje ich **usunięcie** — wygenerowane `drop constraint`/`drop index` dla tych nazw trzeba skasować z nowej migracji przed zastosowaniem (zmiany, które faktycznie robisz, zostaw). Test integracyjny `accounts.integration.test.ts` pilnuje, że ograniczenia istnieją.

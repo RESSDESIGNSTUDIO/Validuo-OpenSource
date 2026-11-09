@@ -28,16 +28,16 @@ Phase 1: wycinek rejestracji i logowania od końca do końca (core → db → ap
 
 ### Phase 1: Rejestracja i logowanie
 
-- [ ] 1.1 Core: katalog uprawnień, `AccessPolicy`, porty i `UnitOfWork`
-- [ ] 1.2 Core: schematy Zod, `AccountService`, `AuthService`
-- [ ] 1.3 Db: encje i migracja
-- [ ] 1.4 Db: repozytoria, `MikroOrmUnitOfWork`, rejestracje DI
-- [ ] 1.5 App: env, adaptery (Argon2id, token, zegar), kontrola Origin, `Set-Cookie`
-- [ ] 1.6 App: Route Handlers `auth/register`, `sign-in`, `sign-out`
-- [ ] 1.7 App: Server Actions i strony `/sign-in`, `/register`
-- [ ] 1.8 App: scenariusz E2E głównej ścieżki
+- [x] 1.1 Core: katalog uprawnień, `AccessPolicy`, porty i `UnitOfWork`
+- [x] 1.2 Core: schematy Zod, `AccountService`, `AuthService`
+- [x] 1.3 Db: encje i migracja
+- [x] 1.4 Db: repozytoria, `MikroOrmUnitOfWork`, rejestracje DI
+- [x] 1.5 App: env, adaptery (Argon2id, token, zegar), kontrola Origin, `Set-Cookie`
+- [x] 1.6 App: Route Handlers `auth/register`, `sign-in`, `sign-out`
+- [x] 1.7 App: Server Actions i strony `/sign-in`, `/register`
+- [x] 1.8 App: scenariusz E2E głównej ścieżki
 
 ### Phase 2: Aktor i polityka dostępu
 
-- [ ] 2.1 App: `requireSession()` i aktor w DI
-- [ ] 2.2 Dokumentacja: README, `.env.example`, AGENTS.md pakietów
+- [x] 2.1 App: `requireSession()` i aktor w DI
+- [x] 2.2 Dokumentacja: README, `.env.example`, AGENTS.md pakietów

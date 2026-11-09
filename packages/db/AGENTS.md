@@ -11,7 +11,7 @@ Obowiązują zasady z głównego `AGENTS.md` (zwłaszcza „Baza danych”) i ro
 - `testing/` (poza `src`, infrastruktura testów) — `@validuo/db/testing`: `startTestDatabase()` (PostgreSQL 17 z testcontainers albo `TEST_DATABASE_URL`, migracje MikroORM), `requireTestDatabaseUrl()`; `@validuo/db/testing/vitest`: `testDatabaseUrl()`; `postgres.global-setup.ts` projektu `integration`.
 - `src/mikro-orm.config.ts` — konfiguracja CLI MikroORM (`npm run db -- <komenda>`, `db:migration:*`): `loadRootEnv()` + `parseServerEnv`, Migrator, połączenie kontem `MIGRATION_DATABASE_URL` (domyślnie `DATABASE_URL`). Wskazana w `package.json` (`mikro-orm.configPaths`).
 - `src/migrations/` — migracje i `.snapshot.json` (commitowane; wyłączone z ESLint i Prettiera).
-- Docelowo (z pierwszą funkcją): `src/repositories/<domena>/mikro-orm-<nazwa>.repository.ts` (adaptery portów z `core`), `src/transactions/mikro-orm-unit-of-work.ts`.
+- `src/entities/accounts/` (konta, użytkownicy, osoby, sesje, uprawnienia, liczniki prób), `src/repositories/<domena>/mikro-orm-<nazwa>.repository.ts` (adaptery portów z `core`, rejestrowane jako `scoped` w `dbRegistrations`), `src/transactions/mikro-orm-unit-of-work.ts` (`begin`/`commit`/`rollback` na `em` scope'u — repozytoria dzielą ten `em`).
 
 ## Zasady
 

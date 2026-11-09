@@ -9,7 +9,12 @@
     "./config": "./src/config/index.ts",
     "./config/load-env": "./src/config/load-env.ts",
     "./di": "./src/di/index.ts",
-    "./errors": "./src/errors/index.ts"
+    "./errors": "./src/errors/index.ts",
+    "./permissions": "./src/permissions/catalog.ts",
+    "./policies/access": "./src/policies/access.policy.ts",
+    "./ports/accounts": "./src/ports/accounts/index.ts",
+    "./ports/security": "./src/ports/security/index.ts",
+    "./ports/transactions": "./src/ports/transactions/unit-of-work.port.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

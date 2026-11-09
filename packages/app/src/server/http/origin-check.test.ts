@@ -15,6 +15,14 @@ describe("assertSameOrigin", () => {
     expect(() => assertSameOrigin(request("POST", "http://localhost:3000"), undefined)).not.toThrow();
   });
 
+  it("rebuilds the origin from the Host header, which Next.js does not normalise", () => {
+    const viaHost = (origin: string) =>
+      new Request("http://localhost:3000/api/x", { method: "POST", headers: { host: "127.0.0.1:3000", origin } });
+
+    expect(() => assertSameOrigin(viaHost("http://127.0.0.1:3000"), undefined)).not.toThrow();
+    expect(() => assertSameOrigin(viaHost("http://localhost:3000"), undefined)).toThrow(HttpError);
+  });
+
   it("compares with APP_ORIGIN when it is set", () => {
     expect(() =>
       assertSameOrigin(request("DELETE", "https://app.example.com"), "https://app.example.com"),

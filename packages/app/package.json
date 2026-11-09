@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@next/env": "16.4.2",
+    "@node-rs/argon2": "^2.2.2",
     "@validuo/core": "*",
     "@validuo/db": "*",
     "@validuo/ui": "*",

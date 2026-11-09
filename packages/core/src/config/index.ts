@@ -1,1 +1,1 @@
-export { parseServerEnv, type DatabaseConfig, type EnvSource, type ServerEnv } from "./env";
+export { parseServerEnv, type AuthConfig, type DatabaseConfig, type EnvSource, type ServerEnv } from "./env";

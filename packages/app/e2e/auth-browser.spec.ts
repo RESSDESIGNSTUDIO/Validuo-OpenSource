@@ -54,6 +54,8 @@ describe("registration and sign-in in the browser (agent-browser)", () => {
 
     await waitFor(async () => (await alertText()).includes("Nieprawidłowy adres e-mail lub hasło."));
 
+    // React clears an uncontrolled form after an action; fill every field again to stay deterministic.
+    await browser.run("fill", "#email", email);
     await browser.run("fill", "#password", password);
     await browser.run("click", "button[type=submit]");
 

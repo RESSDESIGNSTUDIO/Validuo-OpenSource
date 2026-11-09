@@ -14,7 +14,9 @@
     "./policies/access": "./src/policies/access.policy.ts",
     "./ports/accounts": "./src/ports/accounts/index.ts",
     "./ports/security": "./src/ports/security/index.ts",
-    "./ports/transactions": "./src/ports/transactions/unit-of-work.port.ts"
+    "./ports/transactions": "./src/ports/transactions/unit-of-work.port.ts",
+    "./services/accounts": "./src/services/accounts/index.ts",
+    "./validators": "./src/validators/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

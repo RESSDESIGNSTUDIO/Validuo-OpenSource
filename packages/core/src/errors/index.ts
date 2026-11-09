@@ -3,6 +3,7 @@ export {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
   type AppErrorCode,

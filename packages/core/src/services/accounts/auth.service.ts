@@ -37,14 +37,16 @@ export class AuthService {
     const { userRepository, personRepository, loginAttemptRepository, passwordHasher, tokenGenerator, clock } =
       this.deps;
     const now = clock.now();
-    const emailKey = tokenGenerator.hash(email);
+    // The pair, not the e-mail alone: a stranger failing from another address must not lock the
+    // owner out. Without a known IP the pair is the e-mail by itself.
+    const pairKey = tokenGenerator.hash(ip === null ? email : `${email}\n${ip}`);
     const ipKey = ip === null ? null : tokenGenerator.hash(ip);
-    const emailWindow = windowStart(now, AUTH_LIMITS.loginEmail.windowMs);
+    const pairWindow = windowStart(now, AUTH_LIMITS.loginEmailIp.windowMs);
     const ipWindow = windowStart(now, AUTH_LIMITS.loginIp.windowMs);
 
-    const failedByEmail = await loginAttemptRepository.count("login_email", emailKey, emailWindow);
-    const failedByIp = ipKey === null ? 0 : await loginAttemptRepository.count("login_ip", ipKey, ipWindow);
-    if (failedByEmail >= AUTH_LIMITS.loginEmail.max || failedByIp >= AUTH_LIMITS.loginIp.max) {
+    const failedByPair = await loginAttemptRepository.count("email_ip", pairKey, pairWindow);
+    const failedByIp = ipKey === null ? 0 : await loginAttemptRepository.count("ip", ipKey, ipWindow);
+    if (failedByPair >= AUTH_LIMITS.loginEmailIp.max || failedByIp >= AUTH_LIMITS.loginIp.max) {
       throw new TooManyRequestsError("Zbyt wiele prób logowania. Spróbuj ponownie później.");
     }
 
@@ -54,14 +56,14 @@ export class AuthService {
     const person = user !== null && passwordOk ? await personRepository.findByUserId(user.id) : null;
 
     if (person === null) {
-      await loginAttemptRepository.hit("login_email", emailKey, emailWindow);
+      await loginAttemptRepository.hit("email_ip", pairKey, pairWindow);
       if (ipKey !== null) {
-        await loginAttemptRepository.hit("login_ip", ipKey, ipWindow);
+        await loginAttemptRepository.hit("ip", ipKey, ipWindow);
       }
       throw new UnauthorizedError("Nieprawidłowy adres e-mail lub hasło.");
     }
 
-    await loginAttemptRepository.clear("login_email", emailKey);
+    await loginAttemptRepository.clear("email_ip", pairKey);
     return issueSession(this.deps, person.id, person.accountId, now);
   }
 

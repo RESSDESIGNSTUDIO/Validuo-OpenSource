@@ -66,8 +66,7 @@ export class AccountService {
       await this.deps.permissionRepository.grant({
         accountId: account.id,
         personId: person.id,
-        grantedByPersonId: person.id,
-        permissions: accountOwnerPermissions(account.id),
+        actions: accountOwnerPermissions(),
       });
       return issueSession(this.deps, person.id, account.id, now);
     });

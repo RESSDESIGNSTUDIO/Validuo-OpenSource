@@ -3,8 +3,11 @@ const DAY = 24 * 60 * MINUTE;
 
 /** Accepted product defaults (spec "Security Design"); the one place that defines them. */
 export const AUTH_LIMITS = {
-  /** Failed sign-ins per normalised e-mail. */
-  loginEmail: { max: 5, windowMs: 15 * MINUTE },
+  /**
+   * Failed sign-ins per (e-mail, IP) pair, so an attacker elsewhere cannot lock the owner out.
+   * Without a trusted proxy the IP is unknown and the pair degrades to the e-mail alone.
+   */
+  loginEmailIp: { max: 5, windowMs: 15 * MINUTE },
   /** Failed sign-ins per client IP (only with a trusted proxy). */
   loginIp: { max: 20, windowMs: 15 * MINUTE },
   /** Registrations per client IP (only with a trusted proxy). */

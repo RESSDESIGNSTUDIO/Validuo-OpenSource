@@ -1,18 +1,17 @@
 import { ForbiddenError } from "../errors/app-error";
-import type { Permission, PermissionAction } from "../permissions/catalog";
+import type { PermissionAction } from "../permissions/catalog";
 
 /** Verified requester: who they are, which account they belong to and what they may do. */
 export type Actor = {
   personId: string;
   accountId: string;
-  permissions: readonly Permission[];
+  /** Actions the person holds on their whole account (v1 has no narrower scope). */
+  permissions: readonly PermissionAction[];
 };
 
 /** The resource being accessed, reduced to what decides access. */
 export type AccessTarget = {
   accountId: string;
-  /** Parent group of a group, department or employee; omit for account-level resources. */
-  groupId?: string;
 };
 
 /**
@@ -23,12 +22,7 @@ export function can(actor: Actor, action: PermissionAction, target: AccessTarget
   if (target.accountId !== actor.accountId) {
     return false;
   }
-  return actor.permissions.some(
-    (permission) =>
-      permission.action === action &&
-      ((permission.scope === "account" && permission.scopeId === actor.accountId) ||
-        (permission.scope === "group" && target.groupId !== undefined && permission.scopeId === target.groupId)),
-  );
+  return actor.permissions.includes(action);
 }
 
 export function assertCan(actor: Actor, action: PermissionAction, target: AccessTarget): void {

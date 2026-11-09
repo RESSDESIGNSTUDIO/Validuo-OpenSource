@@ -61,8 +61,7 @@ describe("account registration and sign-in over the real stack", () => {
     expect(response.status).toBe(201);
 
     const actor = await actorFor(cookieOf(response));
-    expect(actor?.permissions.map((p) => p.action).sort()).toEqual(["manage_permissions", "read", "write"]);
-    expect(actor?.permissions.every((p) => p.scope === "account" && p.scopeId === actor.accountId)).toBe(true);
+    expect([...(actor?.permissions ?? [])].sort()).toEqual(["manage_permissions", "read", "write"]);
   });
 
   it("answers 409 for a taken e-mail (case-insensitively) and creates nothing new", async () => {
@@ -98,7 +97,7 @@ describe("account registration and sign-in over the real stack", () => {
     );
 
     expect(first?.accountId).not.toBe(second?.accountId);
-    expect(second?.permissions.every((p) => p.scopeId === second.accountId)).toBe(true);
+    expect(second?.permissions).toHaveLength(3);
   });
 
   it("ends the session on sign-out", async () => {

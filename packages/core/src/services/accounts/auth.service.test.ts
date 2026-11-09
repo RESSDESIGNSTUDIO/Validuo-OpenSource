@@ -48,9 +48,9 @@ describe("AuthService.signIn", () => {
     await expect(service.signIn({ ...credentials, ip: null })).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
-  it("blocks an e-mail after too many failures, even with the right password", async () => {
+  it("blocks an e-mail (from an unknown IP) after too many failures, even with the right password", async () => {
     const { service } = await setup();
-    for (let n = 0; n < AUTH_LIMITS.loginEmail.max; n++) {
+    for (let n = 0; n < AUTH_LIMITS.loginEmailIp.max; n++) {
       await service.signIn({ ...credentials, password: "wrong", ip: null }).catch(() => undefined);
     }
 
@@ -66,12 +66,26 @@ describe("AuthService.signIn", () => {
     await expect(service.signIn({ ...credentials, ip: "203.0.113.7" })).rejects.toBeInstanceOf(TooManyRequestsError);
   });
 
+  it("does not let a stranger on another IP lock the owner out", async () => {
+    const { service } = await setup();
+    for (let n = 0; n < AUTH_LIMITS.loginEmailIp.max; n++) {
+      await service.signIn({ ...credentials, password: "wrong", ip: "198.51.100.9" }).catch(() => undefined);
+    }
+
+    await expect(service.signIn({ ...credentials, password: "wrong", ip: "198.51.100.9" })).rejects.toBeInstanceOf(
+      TooManyRequestsError,
+    );
+    await expect(service.signIn({ ...credentials, ip: "203.0.113.7" })).resolves.toMatchObject({
+      token: expect.any(String),
+    });
+  });
+
   it("counts IP failures only when the IP is known", async () => {
     const { fakes, service } = await setup();
 
     await service.signIn({ ...credentials, password: "x", ip: null }).catch(() => undefined);
 
-    expect([...fakes.counters.keys()].some((k) => k.startsWith("login_ip"))).toBe(false);
+    expect([...fakes.counters.keys()].some((k) => k.startsWith("ip|"))).toBe(false);
   });
 });
 
@@ -83,7 +97,7 @@ describe("AuthService.authenticate", () => {
     const actor = await service.authenticate(token);
 
     expect(actor).toMatchObject({ accountId: "acc-1", personId: fakes.persons[0]?.id });
-    expect(actor?.permissions).toHaveLength(3);
+    expect(actor?.permissions).toEqual(["read", "write", "manage_permissions"]);
   });
 
   it("returns null for an unknown token", async () => {

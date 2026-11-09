@@ -104,7 +104,7 @@ Pliki `.env*` leżą w **katalogu głównym**. Ładuje je jeden loader (`loadRoo
 | `DB_POOL_MIN` / `DB_POOL_MAX` | nie | Rozmiar puli połączeń (domyślnie `0` / `10`) |
 | `DB_DEBUG` | nie | `true` włącza logowanie zapytań SQL |
 | `APP_ORIGIN` | nie | Publiczny origin aplikacji (`https://app.example.com`, bez ścieżki i końcowego `/`). Wymagany za proxy kończącym TLS — mutacje (logowanie, rejestracja) są odrzucane, gdy nagłówek `Origin` się z nim nie zgadza; bez niego porównujemy z nagłówkiem `Host` |
-| `TRUSTED_PROXY` | nie | `true`, gdy aplikacja stoi za zaufanym proxy, które nadpisuje `x-forwarded-for`; włącza limity prób per IP (domyślnie `false` — Next.js nie udostępnia adresu połączenia, więc limity per IP są wtedy wyłączone, a per e-mail działają zawsze) |
+| `TRUSTED_PROXY` | nie | `true`, gdy aplikacja stoi za zaufanym proxy, które nadpisuje `x-forwarded-for`; włącza limity prób per IP (domyślnie `false` — Next.js nie udostępnia adresu połączenia, więc limity per IP są wtedy wyłączone, a limit logowania działa per para (e-mail, IP), przy nieznanym IP — per e-mail) |
 | `MIGRATION_DATABASE_URL` | nie | Konto migracyjne (właściciel tabel) dla CLI MikroORM; domyślnie `DATABASE_URL` |
 | `TEST_DATABASE_URL` | nie | Tylko dla testów bez Dockera: baza z `test` w nazwie, różna od `DATABASE_URL` (domyślnie testy startują PostgreSQL przez testcontainers) |
 

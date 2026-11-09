@@ -1,5 +1,5 @@
 import { ConflictError } from "../src/errors/app-error";
-import type { Permission } from "../src/permissions/catalog";
+import type { PermissionAction } from "../src/permissions/catalog";
 import type {
   ActiveSession,
   AttemptKind,
@@ -55,13 +55,13 @@ export function createFakes(start = new Date("2026-01-01T12:00:00Z")) {
     findByUserId: async (userId) => persons.find((p) => p.userId === userId) ?? null,
   };
 
-  const granted: { accountId: string; personId: string; grantedByPersonId: string; permissions: Permission[] }[] = [];
+  const granted: { accountId: string; personId: string; actions: PermissionAction[] }[] = [];
   const permissionRepository: PermissionRepository = {
-    grant: async ({ permissions, ...rest }) => {
-      granted.push({ ...rest, permissions: [...permissions] });
+    grant: async ({ actions, ...rest }) => {
+      granted.push({ ...rest, actions: [...actions] });
     },
     listForPerson: async (accountId, personId) =>
-      granted.filter((g) => g.accountId === accountId && g.personId === personId).flatMap((g) => g.permissions),
+      granted.filter((g) => g.accountId === accountId && g.personId === personId).flatMap((g) => g.actions),
   };
 
   const sessions: (ActiveSession & { tokenHash: string; revokedAt: Date | null })[] = [];

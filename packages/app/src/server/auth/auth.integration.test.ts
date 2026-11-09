@@ -4,7 +4,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import type * as ContainerModule from "../container";
 
 let containerModule: typeof ContainerModule;
-type RouteModule = { POST: (request: Request, segment: { params: Promise<object> }) => Promise<Response> };
+type RouteModule = {
+  POST: (request: Request, segment: { params: Promise<Record<string, never>> }) => Promise<Response>;
+};
 let register: RouteModule["POST"];
 let signIn: RouteModule["POST"];
 let signOut: RouteModule["POST"];

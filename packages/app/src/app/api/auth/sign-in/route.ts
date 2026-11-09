@@ -7,7 +7,7 @@ import { serializeSessionCookie } from "@/server/auth/session-cookie";
 import type { AuthResult } from "../register/route";
 
 export const POST = apiHandler<AuthResult>("auth.signIn", async ({ request, scope, logger }) => {
-  const ip = clientIp(request, scope.resolve("env").auth.trustedProxy);
+  const ip = clientIp(request.headers, scope.resolve("env").auth.trustedProxy);
   const session = await signInUser(scope, await readJsonBody(request), ip, logger);
   return {
     data: { signedIn: true },

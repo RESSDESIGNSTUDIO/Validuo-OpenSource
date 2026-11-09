@@ -6,11 +6,11 @@ import "server-only";
  * earlier entries are client-supplied and must not be trusted. Without a trusted proxy → `null`,
  * and per-IP limits are skipped rather than applied to a spoofable value.
  */
-export function clientIp(request: Request, trustedProxy: boolean): string | null {
+export function clientIp(headers: { get(name: string): string | null }, trustedProxy: boolean): string | null {
   if (!trustedProxy) {
     return null;
   }
-  const forwarded = request.headers.get("x-forwarded-for");
+  const forwarded = headers.get("x-forwarded-for");
   const last = forwarded?.split(",").at(-1)?.trim();
   return last ? last : null;
 }

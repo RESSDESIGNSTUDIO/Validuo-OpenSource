@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { clientIp } from "./client-ip";
 
-const withHeader = (value?: string) =>
-  new Request("http://x", { ...(value !== undefined && { headers: { "x-forwarded-for": value } }) });
+const withHeader = (value?: string) => new Headers(value !== undefined ? { "x-forwarded-for": value } : {});
 
 describe("clientIp", () => {
   it("ignores forwarded headers without a trusted proxy", () => {

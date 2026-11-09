@@ -1,15 +1,29 @@
 import "server-only";
 
 import { parseServerEnv, type ServerEnv } from "@validuo/core/config";
-import { asValue, createAppContainer, type AppContainer } from "@validuo/core/di";
+import { asClass, asValue, createAppContainer, type AppContainer } from "@validuo/core/di";
+import type { Clock, PasswordHasher, TokenGenerator } from "@validuo/core/ports/security";
+import { AccountService, AuthService } from "@validuo/core/services/accounts";
 import { dbRegistrations, type DbCradle } from "@validuo/db";
 
+import { Argon2PasswordHasher } from "./adapters/password/argon2-password-hasher";
+import { CryptoTokenGenerator } from "./adapters/security/crypto-token-generator";
+import { SystemClock } from "./adapters/security/system-clock";
 import { createJsonLogger, type Logger } from "./logging/logger";
 
 /** Every registration of the application. The only place where the concrete cradle is typed. */
 export type AppCradle = DbCradle & {
   env: ServerEnv;
   logger: Logger;
+  /** Session cookie is `Secure` (and `__Host-` prefixed) in production. */
+  secureCookies: boolean;
+  /** Stateless adapters of the `core` security ports: one per process. */
+  passwordHasher: PasswordHasher;
+  tokenGenerator: TokenGenerator;
+  clock: Clock;
+  /** Use cases that hold request-scoped repositories. */
+  accountService: AccountService;
+  authService: AuthService;
 };
 
 export type RequestScope = AppContainer<AppCradle>;
@@ -23,6 +37,12 @@ function buildContainer(): AppContainer<AppCradle> {
   return createAppContainer<AppCradle>({
     env: asValue(env),
     logger: asValue(createJsonLogger()),
+    secureCookies: asValue(process.env.NODE_ENV === "production"),
+    passwordHasher: asClass(Argon2PasswordHasher).singleton(),
+    tokenGenerator: asClass(CryptoTokenGenerator).singleton(),
+    clock: asClass(SystemClock).singleton(),
+    accountService: asClass(AccountService).scoped(),
+    authService: asClass(AuthService).scoped(),
     ...dbRegistrations(env.database),
   });
 }

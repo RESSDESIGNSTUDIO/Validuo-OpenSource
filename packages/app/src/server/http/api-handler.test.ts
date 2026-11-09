@@ -3,6 +3,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
   type AppError,
@@ -15,7 +16,10 @@ import { HttpError } from "./http-error";
 const { logger, getContainer, withRequestScope } = vi.hoisted(() => {
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() };
   logger.child.mockReturnValue(logger);
-  const scope = { resolve: vi.fn(() => logger), dispose: vi.fn() };
+  const scope = {
+    resolve: vi.fn((key: string) => (key === "env" ? { auth: { appOrigin: undefined } } : logger)),
+    dispose: vi.fn(),
+  };
   return {
     logger,
     scope,
@@ -62,6 +66,32 @@ describe("apiHandler", () => {
     expect(logger.child).toHaveBeenCalledWith({ requestId: "abc-1", operation: "groups.read" });
   });
 
+  it("sets every cookie the handler asks for", async () => {
+    const response = await call(
+      apiHandler("test.cookies", async () => ({ data: null, setCookies: ["a=1; Path=/", "b=2; Path=/"] })),
+    );
+
+    expect(response.headers.getSetCookie()).toEqual(["a=1; Path=/", "b=2; Path=/"]);
+  });
+
+  it("rejects a cross-origin mutation before running the handler", async () => {
+    const handler = vi.fn(async () => ({ data: null }));
+    const route = apiHandler("test.mutate", handler);
+
+    const rejected = await route(
+      new Request("http://localhost/api/test", { method: "POST", headers: { origin: "https://evil.example" } }),
+      noParams,
+    );
+    const accepted = await route(
+      new Request("http://localhost/api/test", { method: "POST", headers: { origin: "http://localhost" } }),
+      noParams,
+    );
+
+    expect(rejected.status).toBe(403);
+    expect(accepted.status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
   it("keeps a safe upstream request id and replaces an unsafe one", async () => {
     const handler = apiHandler("test.ok", async () => ({ data: null }));
 
@@ -76,6 +106,7 @@ describe("apiHandler", () => {
     [new ForbiddenError("Brak uprawnień."), 403],
     [new NotFoundError("Nie znaleziono."), 404],
     [new ConflictError("Konflikt."), 409],
+    [new TooManyRequestsError("Za dużo prób."), 429],
   ])("maps %s to HTTP %i", async (error, status) => {
     const response = await call(apiHandler("test.fail", () => Promise.reject(error)));
     const requestId = response.headers.get("x-request-id");

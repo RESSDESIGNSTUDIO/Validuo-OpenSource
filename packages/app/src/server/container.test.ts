@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AccountService, AuthService } from "@validuo/core/services/accounts";
+
+import { Argon2PasswordHasher } from "./adapters/password/argon2-password-hasher";
+import { CryptoTokenGenerator } from "./adapters/security/crypto-token-generator";
+import { SystemClock } from "./adapters/security/system-clock";
 import type * as ContainerModule from "./container";
 
 const globalForContainer = globalThis as { __validuoContainer?: { dispose(): Promise<void> } };
@@ -25,6 +30,28 @@ describe("getContainer", () => {
     expect(container.resolve("env").database.url).toBe("postgres://postgres@127.0.0.1:1/validuo_unit");
     expect(typeof container.resolve("logger").child).toBe("function");
     expect(container.resolve("orm").config.get("clientUrl")).toBe("postgres://postgres@127.0.0.1:1/validuo_unit");
+  });
+
+  it("registers the account use cases on top of the adapters and repositories", () => {
+    const scope = containerModule.getContainer().createScope();
+
+    expect(scope.resolve("accountService")).toBeInstanceOf(AccountService);
+    expect(scope.resolve("authService")).toBeInstanceOf(AuthService);
+    expect(scope.resolve("passwordHasher")).toBeInstanceOf(Argon2PasswordHasher);
+    expect(scope.resolve("tokenGenerator")).toBeInstanceOf(CryptoTokenGenerator);
+    expect(scope.resolve("clock")).toBeInstanceOf(SystemClock);
+    expect(containerModule.getContainer().resolve("passwordHasher") === scope.resolve("passwordHasher")).toBe(true);
+    expect(scope.resolve("authService") === scope.resolve("authService")).toBe(true);
+  });
+
+  it.each([
+    ["production", true],
+    ["development", false],
+  ])("marks the session cookie Secure only in production (NODE_ENV=%s)", async (nodeEnv, secure) => {
+    vi.stubEnv("NODE_ENV", nodeEnv);
+    delete globalForContainer.__validuoContainer;
+
+    expect(containerModule.getContainer().resolve("secureCookies")).toBe(secure);
   });
 
   it("validates the environment when the container is first built", () => {

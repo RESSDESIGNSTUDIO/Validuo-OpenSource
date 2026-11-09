@@ -10,7 +10,9 @@ const { checkDatabase, logger, orm } = vi.hoisted(() => {
 
 vi.mock("@validuo/db", () => ({ checkDatabase }));
 vi.mock("@/server/container", () => {
-  const scope = { resolve: (name: string) => (name === "logger" ? logger : orm) };
+  const scope = {
+    resolve: (name: string) => (name === "logger" ? logger : name === "env" ? { auth: { appOrigin: undefined } } : orm),
+  };
   return { getContainer: () => scope, withRequestScope: (fn: (s: typeof scope) => unknown) => fn(scope) };
 });
 

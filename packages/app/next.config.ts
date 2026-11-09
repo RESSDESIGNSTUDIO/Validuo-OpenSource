@@ -5,8 +5,15 @@ import type { NextConfig } from "next";
 loadRootEnv();
 
 const nextConfig: NextConfig = {
-  // MikroORM v7 packages missing from Next.js' default list — loaded by Node, not bundled.
-  serverExternalPackages: ["@mikro-orm/postgresql", "@mikro-orm/sql", "@mikro-orm/migrations", "kysely"],
+  // MikroORM v7 packages missing from Next.js' default list and the native Argon2 binding — loaded by
+  // Node, not bundled.
+  serverExternalPackages: [
+    "@mikro-orm/postgresql",
+    "@mikro-orm/sql",
+    "@mikro-orm/migrations",
+    "kysely",
+    "@node-rs/argon2",
+  ],
 };
 
 export default nextConfig;
